@@ -1,6 +1,8 @@
 from datetime import UTC, datetime, timedelta
+from dataclasses import replace
 from pathlib import Path
 
+import integration_app.core.files as files_module
 from integration_app.core.files import discover_files, is_stable, move_to_status_dir, remote_path_for
 from integration_app.models import ConnectionConfig
 
@@ -54,7 +56,38 @@ def test_move_to_status_dir_adds_timestamp_on_conflict(tmp_path: Path):
     assert moved.parent == sent_dir
     assert moved.name.startswith("a_")
     assert moved.suffix == ".edi"
+    assert (sent_dir / "a.edi").read_text(encoding="utf-8") == "old"
+    assert moved.read_text(encoding="utf-8") == "new"
+
+
+def test_move_to_status_dir_skips_existing_timestamped_target(tmp_path: Path, monkeypatch):
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2026, 9, 14, 12, 0, 0, tzinfo=tz)
+
+    monkeypatch.setattr(files_module, "datetime", FixedDateTime)
+    file_path = tmp_path / "a.edi"
+    file_path.write_text("new", encoding="utf-8")
+    sent_dir = tmp_path / "Enviados"
+    sent_dir.mkdir()
+    (sent_dir / "a.edi").write_text("old", encoding="utf-8")
+    (sent_dir / "a_20260914120000.edi").write_text("same-second", encoding="utf-8")
+
+    moved = move_to_status_dir(file_path, "Enviados")
+
+    assert moved.parent == sent_dir
+    assert moved.name == "a_20260914120000_1.edi"
+    assert (sent_dir / "a.edi").read_text(encoding="utf-8") == "old"
+    assert (sent_dir / "a_20260914120000.edi").read_text(encoding="utf-8") == "same-second"
+    assert moved.read_text(encoding="utf-8") == "new"
 
 
 def test_remote_path_for_joins_with_forward_slashes(tmp_path: Path):
     assert remote_path_for(_connection(tmp_path), tmp_path / "a.edi") == "/inbound/a.edi"
+
+
+def test_remote_path_for_normalizes_configured_backslashes(tmp_path: Path):
+    connection = replace(_connection(tmp_path), remote_dir=r"\inbound\generix")
+
+    assert remote_path_for(connection, tmp_path / "a.edi") == "/inbound/generix/a.edi"

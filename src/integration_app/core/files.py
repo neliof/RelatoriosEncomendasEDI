@@ -33,8 +33,15 @@ def move_to_status_dir(path: Path, status_dir_name: str) -> Path:
     if target.exists():
         timestamp = datetime.now(UTC).strftime("%Y%m%d%H%M%S")
         target = target_dir / f"{path.stem}_{timestamp}{path.suffix}"
+        counter = 1
+        while target.exists():
+            target = target_dir / f"{path.stem}_{timestamp}_{counter}{path.suffix}"
+            counter += 1
+    if target.exists():
+        raise FileExistsError(f"Status target already exists: {target}")
     return shutil.move(str(path), str(target)) and target
 
 
 def remote_path_for(connection: ConnectionConfig, local_path: Path) -> str:
-    return str(PurePosixPath(connection.remote_dir) / local_path.name)
+    remote_dir = connection.remote_dir.replace("\\", "/")
+    return str(PurePosixPath(remote_dir) / local_path.name)
