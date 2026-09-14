@@ -1,5 +1,8 @@
 .worktrees/
 .venv/
+config.yaml
+config.*.yaml
+!config.example.yaml
 __pycache__/
 *.pyc
 .pytest_cache/
