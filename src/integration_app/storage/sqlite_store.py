@@ -133,6 +133,19 @@ class SQLiteStore:
                 (status, status, checked_at.isoformat(), event_id),
             )
 
+    def report_rows(self) -> list[dict[str, object]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT connection_name, flow_type, protocol, local_path, remote_path,
+                       status, detected_at, sent_at, confirmation_status,
+                       confirmation_checked_at, error_message
+                FROM file_events
+                ORDER BY detected_at ASC
+                """
+            ).fetchall()
+        return [dict(row) for row in rows]
+
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
         conn.execute("PRAGMA foreign_keys = ON")
