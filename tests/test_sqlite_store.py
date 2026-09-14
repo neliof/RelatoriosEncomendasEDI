@@ -1,5 +1,8 @@
+import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
+
+import pytest
 
 from integration_app.models import ConnectionConfig
 from integration_app.storage.sqlite_store import SQLiteStore
@@ -37,3 +40,13 @@ def test_records_file_lifecycle(tmp_path: Path):
 
     store.record_confirmation(event_id, "confirmed", finished)
     assert store.pending_confirmations() == []
+
+
+def test_rejects_transfer_result_for_unknown_event(tmp_path: Path):
+    store = SQLiteStore(tmp_path / "integration.db")
+    store.initialize()
+    started = datetime(2026, 9, 14, 10, 0, tzinfo=UTC)
+    finished = datetime(2026, 9, 14, 10, 1, tzinfo=UTC)
+
+    with pytest.raises(sqlite3.IntegrityError):
+        store.record_transfer_result(999, "sent", started, finished, None)
