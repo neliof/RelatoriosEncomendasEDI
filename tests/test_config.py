@@ -83,3 +83,67 @@ connections:
 
     with pytest.raises(ValueError, match="Duplicate connection name: repeated"):
         load_config(config_path)
+
+
+@pytest.mark.parametrize("field", ["enabled", "confirm_remote_processing"])
+def test_load_config_rejects_non_boolean_connection_flags(tmp_path: Path, field: str):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        f"""
+app:
+  database_path: data/integration.db
+  log_dir: logs
+  report_dir: reports
+defaults:
+  stable_after_seconds: 30
+  confirmation_timeout_minutes: 120
+connections:
+  - name: laboratorio_x
+    enabled: true
+    flow_type: generic
+    protocol: sftp
+    host: sftp.example.test
+    port: 22
+    username: user
+    source_dir: ./inbox
+    remote_dir: /inbound
+    file_pattern: "*.edi"
+    {field}: "false"
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match=f"{field} must be a boolean"):
+        load_config(config_path)
+
+
+@pytest.mark.parametrize("field", ["password_env", "private_key_passphrase_env"])
+def test_load_config_rejects_non_string_optional_env_fields(tmp_path: Path, field: str):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        f"""
+app:
+  database_path: data/integration.db
+  log_dir: logs
+  report_dir: reports
+defaults:
+  stable_after_seconds: 30
+  confirmation_timeout_minutes: 120
+connections:
+  - name: laboratorio_x
+    enabled: true
+    flow_type: generic
+    protocol: sftp
+    host: sftp.example.test
+    port: 22
+    username: user
+    source_dir: ./inbox
+    remote_dir: /inbound
+    file_pattern: "*.edi"
+    {field}: 123
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match=f"{field} must be a string when provided"):
+        load_config(config_path)

@@ -45,7 +45,7 @@ def _parse_connection(raw: Any) -> ConnectionConfig:
         raise ValueError(f"Unsupported protocol: {protocol}")
     return ConnectionConfig(
         name=_required_str(raw, "name"),
-        enabled=bool(raw.get("enabled", True)),
+        enabled=_optional_bool(raw, "enabled", True),
         flow_type=str(raw.get("flow_type", "generic")),
         protocol=protocol,
         host=_required_str(raw, "host"),
@@ -56,10 +56,10 @@ def _parse_connection(raw: Any) -> ConnectionConfig:
         file_pattern=str(raw.get("file_pattern", "*")),
         sent_dir=str(raw.get("sent_dir", "Enviados")),
         error_dir=str(raw.get("error_dir", "Erros")),
-        password_env=raw.get("password_env"),
+        password_env=_optional_str(raw, "password_env"),
         private_key_path=Path(raw["private_key_path"]) if raw.get("private_key_path") else None,
-        private_key_passphrase_env=raw.get("private_key_passphrase_env"),
-        confirm_remote_processing=bool(raw.get("confirm_remote_processing", True)),
+        private_key_passphrase_env=_optional_str(raw, "private_key_passphrase_env"),
+        confirm_remote_processing=_optional_bool(raw, "confirm_remote_processing", True),
     )
 
 
@@ -82,6 +82,22 @@ def _required_str(raw: dict[str, Any], key: str) -> str:
     value = raw.get(key)
     if not isinstance(value, str) or not value:
         raise ValueError(f"{key} must be a non-empty string")
+    return value
+
+
+def _optional_str(raw: dict[str, Any], key: str) -> str | None:
+    value = raw.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"{key} must be a string when provided")
+    return value
+
+
+def _optional_bool(raw: dict[str, Any], key: str, default: bool) -> bool:
+    value = raw.get(key, default)
+    if not isinstance(value, bool):
+        raise ValueError(f"{key} must be a boolean")
     return value
 
 
