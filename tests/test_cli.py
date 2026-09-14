@@ -29,3 +29,29 @@ connections: []
     assert any((tmp_path / "reports").glob("*.json"))
     assert any((tmp_path / "reports").glob("*.xlsx"))
     assert any((tmp_path / "logs").glob("*.jsonl"))
+
+
+def test_main_generix_report_returns_zero(tmp_path: Path):
+    root = tmp_path / "storage" / "cpip_1"
+    headers = root / "sent" / "headers"
+    headers.mkdir(parents=True)
+    (headers / "sample.hdr").write_text(
+        "unique-id=NXC-1\nsubject=Encomenda.txt\n[log]\nthe message was PROCESSED\n",
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "generix-report",
+            "--storage-root",
+            str(root),
+            "--report-dir",
+            str(tmp_path / "reports"),
+            "--run-id",
+            "manual",
+        ]
+    )
+
+    assert exit_code == 0
+    assert (tmp_path / "reports" / "manual.csv").exists()
+    assert (tmp_path / "reports" / "manual.json").exists()

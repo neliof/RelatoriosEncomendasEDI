@@ -166,6 +166,36 @@ C:\Users\TI\Documents\Influe-Generix\Netixone\Documentos Fase Testes
 | ARTSOFT/Laboratorios | Encomendas | `Encomenda_*.txt`, `ord*.txt` | `Netixone\In` ou area de testes | Pasta operacional ainda por confirmar. |
 | Erros de cliente | Erro | `ord*.txt`, `*.BCK` | `Netixone\Documentos Fase Testes\Cliente nao existe` | Usar como referencia para regras de erro, nao como pasta operacional. |
 
+## Relatorio Local Implementado
+
+Foi acrescentado o comando:
+
+```powershell
+$env:PYTHONPATH='src'
+python -m integration_app.app generix-report --storage-root "C:\Users\TI\Documents\Influe-Generix\Bat\storage\cpip_20122611437260" --report-dir reports
+```
+
+Este comando percorre:
+
+- `received\headers\*.hdr`;
+- `sent\headers\*.hdr`.
+
+E exporta CSV/JSON com campos uteis para correlacao operacional:
+
+- `flow_type`;
+- `unique_id`;
+- `subject`;
+- `date`;
+- `from` / `to`;
+- `message_id`;
+- `pipe_id`;
+- `receipt`;
+- `disposition`;
+- `processed`;
+- `body_path`;
+- `header_path`;
+- `log_events`.
+
 ## Questoes Pendentes
 
 1. Confirmar se `Netixone\In` e a pasta real onde o ARTSOFT deposita encomendas para laboratorios.

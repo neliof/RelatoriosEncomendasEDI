@@ -12,6 +12,17 @@ copy config.example.yaml config.yaml
 python -m integration_app.app run-once --config config.yaml
 ```
 
+## Relatorio Generix Local
+
+Para analisar os cabecalhos `.hdr` da mailbox Generix sem enviar ficheiros:
+
+```powershell
+$env:PYTHONPATH='src'
+python -m integration_app.app generix-report --storage-root "C:\Users\TI\Documents\Influe-Generix\Bat\storage\cpip_20122611437260" --report-dir reports
+```
+
+O comando gera CSV e JSON com `unique-id`, assunto, origem, destino, estado `processed`, caminho do corpo e eventos do bloco `[log]`.
+
 ## Componentes
 
 - Configuracao em YAML.
