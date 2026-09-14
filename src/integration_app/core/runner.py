@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Callable
@@ -42,8 +43,9 @@ def run_once(
             remote_path = remote_path_for(connection, local_path)
             event_id = store.record_detected(connection, local_path, remote_path)
             started = datetime.now(UTC)
-            client = client_factory(connection)
+            client: TransferClient | None = None
             try:
+                client = client_factory(connection)
                 client.connect()
                 client.upload(local_path, remote_path)
                 finished = datetime.now(UTC)
@@ -57,7 +59,8 @@ def run_once(
                     move_to_status_dir(local_path, connection.error_dir)
                 summary = summary.add(processed=1, failed=1)
             finally:
-                client.close()
+                if client is not None:
+                    _close_defensively(client)
     return summary
 
 
@@ -71,8 +74,9 @@ def _check_pending_confirmations(
     pending = [item for item in store.pending_confirmations() if item.connection_name == connection.name]
     if not pending:
         return summary
-    client = client_factory(connection)
+    client: TransferClient | None = None
     try:
+        client = client_factory(connection)
         client.connect()
         for item in pending:
             checked_at = datetime.now(UTC)
@@ -82,6 +86,14 @@ def _check_pending_confirmations(
             elif checked_at - item.sent_at > timedelta(minutes=config.defaults.confirmation_timeout_minutes):
                 store.record_confirmation(item.event_id, "confirmation_timeout", checked_at)
                 summary = summary.add(confirmation_timeouts=1)
+    except Exception:
+        return summary
     finally:
-        client.close()
+        if client is not None:
+            _close_defensively(client)
     return summary
+
+
+def _close_defensively(client: TransferClient) -> None:
+    with suppress(Exception):
+        client.close()
