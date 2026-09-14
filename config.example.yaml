@@ -1,0 +1,22 @@
+app:
+  database_path: data/integration.db
+  log_dir: logs
+  report_dir: reports
+defaults:
+  stable_after_seconds: 30
+  confirmation_timeout_minutes: 120
+connections:
+  - name: laboratorio_x
+    enabled: true
+    flow_type: generic
+    protocol: sftp
+    host: sftp.example.test
+    port: 22
+    username: user
+    password_env: LAB_X_SFTP_PASSWORD
+    source_dir: ./inbox
+    remote_dir: /inbound
+    file_pattern: "*.edi"
+    sent_dir: Enviados
+    error_dir: Erros
+    confirm_remote_processing: true
