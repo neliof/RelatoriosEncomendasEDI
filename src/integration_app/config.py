@@ -4,13 +4,18 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from yaml import YAMLError
 
 from integration_app.models import AppConfig, AppPaths, ConnectionConfig, DefaultsConfig
 
 
 def load_config(path: str | Path) -> AppConfig:
     config_path = Path(path)
-    raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config_text = config_path.read_text(encoding="utf-8")
+    try:
+        raw = yaml.safe_load(config_text)
+    except YAMLError:
+        raw = yaml.safe_load(config_text.replace("\\", "/"))
     if not isinstance(raw, dict):
         raise ValueError("Configuration root must be a mapping")
 
