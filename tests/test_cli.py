@@ -26,3 +26,6 @@ connections: []
     assert exit_code == 0
     assert (tmp_path / "data" / "integration.db").exists()
     assert any((tmp_path / "reports").glob("*.csv"))
+    assert any((tmp_path / "reports").glob("*.json"))
+    assert any((tmp_path / "reports").glob("*.xlsx"))
+    assert any((tmp_path / "logs").glob("*.jsonl"))

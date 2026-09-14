@@ -25,6 +25,8 @@ def configure_json_logging(log_dir: Path) -> Path:
     handler = logging.FileHandler(log_path, encoding="utf-8")
     handler.setFormatter(JsonLineFormatter())
     root = logging.getLogger()
+    for existing_handler in root.handlers:
+        existing_handler.close()
     root.handlers.clear()
     root.setLevel(logging.INFO)
     root.addHandler(handler)
