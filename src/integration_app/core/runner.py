@@ -43,12 +43,19 @@ def run_once(
                 summary = summary.add(skipped_unstable=1)
                 continue
             remote_path = remote_path_for(connection, local_path)
+            is_duplicate = _is_duplicate_order(connection, store, local_path)
             event_id = store.record_detected(connection, local_path, remote_path)
             started = datetime.now(UTC)
-            if _is_duplicate_order(connection, store, local_path):
-                finished = datetime.now(UTC)
-                store.record_transfer_result(event_id, "duplicate", started, finished, "Duplicate order EDI")
-                move_to_status_dir(local_path, "Duplicados")
+            if is_duplicate:
+                try:
+                    move_to_status_dir(local_path, "Duplicados")
+                    finished = datetime.now(UTC)
+                    store.record_transfer_result(event_id, "duplicate", started, finished, "Duplicate order EDI")
+                except Exception as exc:
+                    finished = datetime.now(UTC)
+                    store.record_transfer_result(event_id, "failed", started, finished, str(exc))
+                    summary = summary.add(processed=1, failed=1)
+                    continue
                 summary = summary.add(processed=1)
                 continue
             client: TransferClient | None = None

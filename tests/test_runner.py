@@ -294,3 +294,70 @@ D0000015273289             20260724
     assert (source / "Duplicados" / file_name).exists()
     rows = store.report_rows()
     assert rows[-1]["status"] == "duplicate"
+
+
+def test_run_once_sends_first_order_when_duplicate_policy_moves_duplicates(tmp_path: Path):
+    source = tmp_path / "send"
+    source.mkdir()
+    file_name = "Pedido_EDI_Entregafarm_BAYER_F200-202600525.txt"
+    new_file = source / file_name
+    new_file.write_text(
+        """HPEDIDO0001               PT5106785059125042
+C   PT500043256                                                                                                                    2026072400010050         0001                                                                                          TER/F200/202600525
+D0000015273289             20260724
+""",
+        encoding="utf-8",
+    )
+    connection = make_connection(source, file_pattern="*.txt", duplicate_policy="move_to_duplicates")
+    config = make_config(tmp_path, [connection])
+    store = initialized_store(config)
+    fake = FakeClient()
+
+    summary = run_once(config, store, client_factory=lambda connection: fake)
+
+    assert summary.processed == 1
+    assert summary.sent == 1
+    assert summary.failed == 0
+    assert fake.uploaded == [(new_file, "/inbound/" + file_name)]
+    assert (source / "Enviados" / file_name).exists()
+    rows = store.report_rows()
+    assert rows[-1]["status"] == "sent"
+
+
+def test_run_once_records_failure_when_duplicate_cannot_be_moved(tmp_path: Path, monkeypatch):
+    source = tmp_path / "send"
+    sent = source / "Enviados"
+    source.mkdir()
+    sent.mkdir()
+    file_name = "Pedido_EDI_Entregafarm_BAYER_F200-202600525.txt"
+    order_content = """HPEDIDO0001               PT5106785059125042
+C   PT500043256                                                                                                                    2026072400010050         0001                                                                                          TER/F200/202600525
+D0000015273289             20260724
+"""
+    (sent / file_name).write_text(order_content, encoding="utf-8")
+    new_file = source / file_name
+    new_file.write_text(order_content, encoding="utf-8")
+    connection = make_connection(source, file_pattern="*.txt", duplicate_policy="move_to_duplicates")
+    config = make_config(tmp_path, [connection])
+    store = initialized_store(config)
+    previous_id = store.record_detected(connection, source / file_name, "/inbound/" + file_name)
+    instant = datetime(2026, 9, 14, 10, 0, tzinfo=UTC)
+    store.record_transfer_result(previous_id, "sent", instant, instant, None)
+    store.record_confirmation(previous_id, "confirmed", instant)
+    fake = FakeClient()
+
+    def fail_move(local_path: Path, directory_name: str) -> Path:
+        raise PermissionError("move denied")
+
+    monkeypatch.setattr("integration_app.core.runner.move_to_status_dir", fail_move)
+
+    summary = run_once(config, store, client_factory=lambda connection: fake)
+
+    assert summary.processed == 1
+    assert summary.sent == 0
+    assert summary.failed == 1
+    assert fake.uploaded == []
+    assert new_file.exists()
+    rows = store.report_rows()
+    assert rows[-1]["status"] == "failed"
+    assert rows[-1]["error_message"] == "move denied"
