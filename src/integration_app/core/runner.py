@@ -148,18 +148,15 @@ def _resolve_existing_order_path(row: dict[str, object]) -> Path | None:
     if not isinstance(local_path, str):
         return None
     path = Path(local_path)
+    status = row.get("status")
+    if status not in {"sent", "confirmed", "duplicate"}:
+        return None
     if path.exists():
         return path
-    status = row.get("status")
-    if status in {"sent", "confirmed", "duplicate"}:
-        sent_path = path.parent / "Enviados" / path.name
-        if sent_path.exists():
-            return sent_path
-        duplicate_path = path.parent / "Duplicados" / path.name
-        if duplicate_path.exists():
-            return duplicate_path
-    if status == "failed":
-        error_path = path.parent / "Erros" / path.name
-        if error_path.exists():
-            return error_path
+    sent_path = path.parent / "Enviados" / path.name
+    if sent_path.exists():
+        return sent_path
+    duplicate_path = path.parent / "Duplicados" / path.name
+    if duplicate_path.exists():
+        return duplicate_path
     return None
