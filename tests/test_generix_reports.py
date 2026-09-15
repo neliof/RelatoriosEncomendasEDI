@@ -2,6 +2,8 @@ import csv
 import json
 from pathlib import Path
 
+from openpyxl import load_workbook
+
 from integration_app.generix.reports import export_header_report
 
 
@@ -54,6 +56,7 @@ disposition=automatic-action/MDN-sent-automatically; processed
         tmp_path / "reports" / "generix-test.json",
         tmp_path / "reports" / "generix-test-exceptions.csv",
         tmp_path / "reports" / "generix-test-exceptions.json",
+        tmp_path / "reports" / "generix-test.xlsx",
     ]
     with written[0].open("r", newline="", encoding="utf-8") as handle:
         csv_rows = list(csv.DictReader(handle))
@@ -186,3 +189,48 @@ disposition=automatic-action/MDN-sent-automatically; processed
     json_rows = json.loads(exception_json.read_text(encoding="utf-8"))
     assert [row["unique_id"] for row in csv_rows] == ["NXC-WARNING"]
     assert [row["unique_id"] for row in json_rows] == ["NXC-WARNING"]
+
+
+def test_export_header_report_writes_operational_xlsx(tmp_path: Path):
+    root = tmp_path / "storage" / "cpip_1"
+    sent = root / "sent" / "headers"
+    sent_data = root / "sent" / "data"
+    sent.mkdir(parents=True)
+    sent_data.mkdir(parents=True)
+    (sent_data / "ok.txt").write_text(
+        "CAB220 202600552                          EntregaFarm\nDET000001\nTOT00000000001\n",
+        encoding="utf-8",
+    )
+    (sent / "ok.hdr").write_text(
+        """unique-id=NXC-OK
+subject=ok.txt
+disposition=automatic-action/MDN-sent-automatically; processed
+""",
+        encoding="utf-8",
+    )
+    (sent_data / "warning.txt").write_text(
+        "CAB220 202600552                          EntregaFarm\nDET000001\n",
+        encoding="utf-8",
+    )
+    (sent / "warning.hdr").write_text(
+        """unique-id=NXC-WARNING
+subject=warning.txt
+disposition=automatic-action/MDN-sent-automatically; processed
+""",
+        encoding="utf-8",
+    )
+
+    written = export_header_report(root, tmp_path / "reports", run_id="excel")
+
+    xlsx_path = tmp_path / "reports" / "excel.xlsx"
+    assert xlsx_path in written
+    workbook = load_workbook(xlsx_path)
+    assert workbook.sheetnames == ["Todas", "Excepcoes", "Resumo"]
+    assert workbook["Todas"].auto_filter.ref is not None
+    assert workbook["Excepcoes"].max_row == 2
+    assert workbook["Excepcoes"]["A2"].value == "sent"
+    assert workbook["Resumo"]["A1"].value == "Estado"
+    assert workbook["Resumo"]["B2"].value == 1
+    assert workbook["Resumo"]["B3"].value == 1
+    assert workbook["Resumo"]["B4"].value == 0
+    assert workbook["Todas"]["L3"].fill.fill_type == "solid"

@@ -4,6 +4,9 @@ import csv
 import json
 from pathlib import Path
 
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
+
 from integration_app.generix.edi import GenerixEdiRecord, parse_edi_file
 from integration_app.generix.headers import GenerixHeaderRecord, scan_header_dir
 
@@ -42,11 +45,13 @@ def export_header_report(storage_root: Path, report_dir: Path, run_id: str) -> l
     json_path = report_dir / f"{run_id}.json"
     exception_csv_path = report_dir / f"{run_id}-exceptions.csv"
     exception_json_path = report_dir / f"{run_id}-exceptions.json"
+    xlsx_path = report_dir / f"{run_id}.xlsx"
     _write_csv(csv_path, rows)
     _write_json(json_path, rows)
     _write_csv(exception_csv_path, exception_rows)
     _write_json(exception_json_path, exception_rows)
-    return [csv_path, json_path, exception_csv_path, exception_json_path]
+    _write_xlsx(xlsx_path, rows, exception_rows)
+    return [csv_path, json_path, exception_csv_path, exception_json_path, xlsx_path]
 
 
 def summarize_rows(rows: list[dict[str, object]]) -> dict[str, int]:
@@ -151,3 +156,67 @@ def _write_csv(path: Path, rows: list[dict[str, object]]) -> None:
 
 def _write_json(path: Path, rows: list[dict[str, object]]) -> None:
     path.write_text(json.dumps(rows, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _write_xlsx(path: Path, rows: list[dict[str, object]], exception_rows: list[dict[str, object]]) -> None:
+    workbook = Workbook()
+    all_sheet = workbook.active
+    all_sheet.title = "Todas"
+    _write_rows_sheet(all_sheet, rows)
+    exceptions_sheet = workbook.create_sheet("Excepcoes")
+    _write_rows_sheet(exceptions_sheet, exception_rows)
+    summary_sheet = workbook.create_sheet("Resumo")
+    _write_summary_sheet(summary_sheet, summarize_rows(rows))
+    workbook.save(path)
+
+
+def _write_rows_sheet(sheet, rows: list[dict[str, object]]) -> None:
+    sheet.append(GENERIX_REPORT_COLUMNS)
+    for row in rows:
+        sheet.append([_xlsx_value(row.get(column)) for column in GENERIX_REPORT_COLUMNS])
+    _style_rows_sheet(sheet)
+
+
+def _write_summary_sheet(sheet, summary: dict[str, int]) -> None:
+    sheet.append(["Estado", "Total"])
+    sheet.append(["OK", summary["ok"]])
+    sheet.append(["Warnings", summary["warnings"]])
+    sheet.append(["Errors", summary["errors"]])
+    sheet.append(["Total", summary["total"]])
+    for cell in sheet[1]:
+        cell.font = Font(bold=True)
+    sheet.column_dimensions["A"].width = 16
+    sheet.column_dimensions["B"].width = 12
+
+
+def _style_rows_sheet(sheet) -> None:
+    if sheet.max_row == 0:
+        return
+    for cell in sheet[1]:
+        cell.font = Font(bold=True)
+    sheet.auto_filter.ref = sheet.dimensions
+    sheet.freeze_panes = "A2"
+    for column_cells in sheet.columns:
+        width = min(max(len(str(cell.value or "")) for cell in column_cells) + 2, 60)
+        sheet.column_dimensions[column_cells[0].column_letter].width = width
+    exception_column = GENERIX_REPORT_COLUMNS.index("exception_level") + 1
+    for row_number in range(2, sheet.max_row + 1):
+        level = sheet.cell(row=row_number, column=exception_column).value
+        fill = _exception_fill(level)
+        if fill:
+            for cell in sheet[row_number]:
+                cell.fill = fill
+
+
+def _exception_fill(level: object) -> PatternFill | None:
+    if level == "warning":
+        return PatternFill("solid", fgColor="FFF2CC")
+    if level == "error":
+        return PatternFill("solid", fgColor="F4CCCC")
+    return None
+
+
+def _xlsx_value(value: object) -> object:
+    if isinstance(value, list):
+        return "; ".join(str(item) for item in value)
+    return value

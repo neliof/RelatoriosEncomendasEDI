@@ -212,6 +212,7 @@ O relatorio classifica tambem excepcoes:
 - `error`: EDI associado nao encontrado ou eventos de log com indicadores de erro/rejeicao, incluindo `cliente nao existe`.
 
 Para alem do relatorio completo, sao gerados ficheiros separados `-exceptions.csv` e `-exceptions.json` com apenas os registos em `warning` ou `error`. O comando imprime tambem um resumo de totais no terminal.
+Tambem e gerado um Excel `.xlsx` com tres folhas: `Todas`, `Excepcoes` e `Resumo`. As folhas de dados incluem filtros, cabecalho fixo, larguras ajustadas e realce de linhas em `warning`/`error`.
 
 ## Questoes Pendentes
 
