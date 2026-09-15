@@ -33,7 +33,30 @@ O script:
 
 ## Agendamento
 
-No Task Scheduler, criar uma tarefa com:
+Opcao recomendada: instalar ou actualizar a tarefa pelo script incluido.
+
+Para simular sem alterar o Windows:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\install-scheduled-task.ps1" -Schedule Minutes -EveryMinutes 10 -DryRun
+```
+
+Para instalar de 10 em 10 minutos:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\install-scheduled-task.ps1" -Schedule Minutes -EveryMinutes 10
+```
+
+Outros exemplos:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\install-scheduled-task.ps1" -Schedule Minutes -EveryMinutes 5
+powershell.exe -ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\install-scheduled-task.ps1" -Schedule Minutes -EveryMinutes 30
+powershell.exe -ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\install-scheduled-task.ps1" -Schedule Minutes -EveryMinutes 60
+powershell.exe -ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\install-scheduled-task.ps1" -Schedule Daily -DailyAt 08:00
+```
+
+Se preferires criar manualmente no Task Scheduler:
 
 - Program/script: `powershell.exe`.
 - Arguments: `-ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\run-daily.ps1"`.

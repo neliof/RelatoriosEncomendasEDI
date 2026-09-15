@@ -1,4 +1,5 @@
 from pathlib import Path
+import subprocess
 
 
 def test_daily_script_runs_transfer_then_generix_report():
@@ -57,3 +58,29 @@ def test_task_scheduler_docs_show_frequency_and_retention_options():
     assert "Repeat task every: 1 hour" in content
     assert "-RetentionDays 60" in content
     assert "-DisableCleanup" in content
+
+
+def test_install_scheduled_task_dry_run_describes_interval_task():
+    result = subprocess.run(
+        [
+            "powershell.exe",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            "scripts/install-scheduled-task.ps1",
+            "-Schedule",
+            "Minutes",
+            "-EveryMinutes",
+            "10",
+            "-DryRun",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "RelatoriosEncomendasEDI_EF" in result.stdout
+    assert "run-daily.ps1" in result.stdout
+    assert "Every 10 minute(s)" in result.stdout
