@@ -84,3 +84,4 @@ def test_install_scheduled_task_dry_run_describes_interval_task():
     assert "RelatoriosEncomendasEDI_EF" in result.stdout
     assert "run-daily.ps1" in result.stdout
     assert "Every 10 minute(s)" in result.stdout
+    assert "RunLevel: Limited" in result.stdout

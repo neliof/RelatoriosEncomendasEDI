@@ -12,6 +12,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+$RunLevel = "Limited"
 
 $DailyScript = Join-Path $ProjectRoot "scripts\run-daily.ps1"
 if (-not (Test-Path $DailyScript)) {
@@ -50,6 +51,7 @@ Write-Output "Task: $TaskName"
 Write-Output "Project: $ProjectRoot"
 Write-Output "Action: powershell.exe $($ActionArgs -join ' ')"
 Write-Output "Schedule: $TriggerDescription"
+Write-Output "RunLevel: $RunLevel"
 Write-Output "Retention: $RetentionDays day(s)"
 
 if ($DryRun) {
@@ -75,7 +77,7 @@ $Action = New-ScheduledTaskAction `
 $Principal = New-ScheduledTaskPrincipal `
     -UserId $env:USERNAME `
     -LogonType Interactive `
-    -RunLevel LeastPrivilege
+    -RunLevel $RunLevel
 
 $Settings = New-ScheduledTaskSettingsSet `
     -MultipleInstances IgnoreNew `
