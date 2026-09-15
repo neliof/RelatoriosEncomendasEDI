@@ -157,3 +157,108 @@ D0000015273289             20260724
 
     csv_text = (tmp_path / "reports" / "run-duplicate-folder.csv").read_text(encoding="utf-8")
     assert "PT5106785059125042|PT500043256|F200|202600525" in csv_text
+
+
+def test_export_reports_enriches_sent_order_xml_from_status_folder(tmp_path: Path):
+    store = SQLiteStore(tmp_path / "integration.db")
+    store.initialize()
+    connection = ConnectionConfig(
+        name="beiersdorf",
+        enabled=True,
+        flow_type="generic",
+        protocol="ftp",
+        host="ftp.example.test",
+        port=21,
+        username="user",
+        source_dir=tmp_path,
+        remote_dir="/inbound",
+        file_pattern="*.XML",
+    )
+    file_name = "Pedido_EDI_Imefar_5600000975855F002-202600143.XML"
+    original_path = tmp_path / file_name
+    sent_path = tmp_path / "Enviados" / file_name
+    sent_path.parent.mkdir()
+    sent_path.write_text(
+        """<?xml version="1.0" encoding="utf-8"?>
+<EOrders>
+  <EOrder>
+    <ByerOrderNumber>F002/202600143</ByerOrderNumber>
+    <OrderDate>2026-09-14</OrderDate>
+    <OrderType>F002</OrderType>
+    <BuyerVAT>511000685</BuyerVAT>
+    <BuyerEANCode>5600000975855</BuyerEANCode>
+    <SellerVAT>PT500043531</SellerVAT>
+    <SellerEANCode>5600000975855</SellerEANCode>
+    <SellerCanal>Mass Market</SellerCanal>
+    <BuyOrderItem><ItemLineNumber>1</ItemLineNumber></BuyOrderItem>
+  </EOrder>
+</EOrders>
+""",
+        encoding="utf-8",
+    )
+    event_id = store.record_detected(connection, original_path, "/inbound/" + file_name)
+    instant = datetime(2026, 9, 14, 10, 0, tzinfo=UTC)
+    store.record_transfer_result(event_id, "sent", instant, instant, None)
+
+    export_reports(store, tmp_path / "reports", "run-xml")
+
+    csv_text = (tmp_path / "reports" / "run-xml.csv").read_text(encoding="utf-8")
+    assert "xml_seller_name" in csv_text
+    assert "BEIERSDORF PORTUGUESA, LDA." in csv_text
+    assert "F002/202600143" in csv_text
+    assert "5600000975855|PT500043531|F002|202600143" in csv_text
+
+
+def test_export_reports_marks_duplicate_order_xml_keys(tmp_path: Path):
+    store = SQLiteStore(tmp_path / "integration.db")
+    store.initialize()
+    source = tmp_path / "send"
+    sent = source / "Enviados"
+    sent.mkdir(parents=True)
+    connection = ConnectionConfig(
+        name="beiersdorf",
+        enabled=True,
+        flow_type="generic",
+        protocol="ftp",
+        host="ftp.example.test",
+        port=21,
+        username="user",
+        source_dir=source,
+        remote_dir="/inbound",
+        file_pattern="*.XML",
+    )
+    duplicate_names = [
+        "Pedido_EDI_Imefar_5600000975855F002-202600143.XML",
+        "Pedido_EDI_Imefar_5600000975855F002-202600143_copia.XML",
+    ]
+    for file_name in duplicate_names:
+        (sent / file_name).write_text(
+            """<?xml version="1.0" encoding="utf-8"?>
+<EOrders>
+  <EOrder>
+    <ByerOrderNumber>F002/202600143</ByerOrderNumber>
+    <OrderDate>2026-09-14</OrderDate>
+    <OrderType>F002</OrderType>
+    <BuyerVAT>511000685</BuyerVAT>
+    <BuyerEANCode>5600000975855</BuyerEANCode>
+    <SellerVAT>PT500043531</SellerVAT>
+    <SellerEANCode>5600000975855</SellerEANCode>
+    <SellerCanal>Mass Market</SellerCanal>
+    <BuyOrderItem><ItemLineNumber>1</ItemLineNumber></BuyOrderItem>
+  </EOrder>
+</EOrders>
+""",
+            encoding="utf-8",
+        )
+        event_id = store.record_detected(connection, source / file_name, "/inbound/" + file_name)
+        instant = datetime(2026, 9, 14, 10, 0, tzinfo=UTC)
+        store.record_transfer_result(event_id, "sent", instant, instant, None)
+
+    export_reports(store, tmp_path / "reports", "run-xml-duplicates")
+
+    rows = (tmp_path / "reports" / "run-xml-duplicates.csv").read_text(encoding="utf-8").splitlines()
+    assert "xml_duplicate_key" in rows[0]
+    assert "xml_duplicate_status" in rows[0]
+    assert "5600000975855|PT500043531|F002|202600143" in rows[1]
+    assert "unique" in rows[1]
+    assert "duplicate" in rows[2]

@@ -7,6 +7,7 @@ from pathlib import Path
 from openpyxl import Workbook
 
 from integration_app.order_edi import OrderEdiRecord, empty_order_edi_record, order_duplicate_key, parse_order_edi_file
+from integration_app.order_xml import OrderXmlRecord, empty_order_xml_record, order_xml_duplicate_key, parse_order_xml_file
 from integration_app.storage.sqlite_store import SQLiteStore
 
 
@@ -33,6 +34,20 @@ REPORT_COLUMNS = [
     "edi_linhas_encomenda",
     "edi_duplicate_key",
     "edi_duplicate_status",
+    "xml_buyer_name",
+    "xml_buyer_vat",
+    "xml_buyer_ean",
+    "xml_seller_vat",
+    "xml_seller_name",
+    "xml_seller_ean",
+    "xml_seller_canal",
+    "xml_order_type",
+    "xml_order_number",
+    "xml_buyer_order_number",
+    "xml_order_date",
+    "xml_linhas_encomenda",
+    "xml_duplicate_key",
+    "xml_duplicate_status",
 ]
 
 
@@ -72,6 +87,7 @@ def _write_xlsx(path: Path, rows: list[dict[str, object]]) -> None:
 def _enrich_row(row: dict[str, object]) -> dict[str, object]:
     enriched = dict(row)
     edi_record = _parse_order_edi_for_row(row)
+    xml_record = _parse_order_xml_for_row(row)
     enriched.update(
         {
             "edi_tipo_mensagem": edi_record.tipo_mensagem,
@@ -85,30 +101,56 @@ def _enrich_row(row: dict[str, object]) -> dict[str, object]:
             "edi_linhas_encomenda": edi_record.linhas_encomenda,
             "edi_duplicate_key": order_duplicate_key(edi_record),
             "edi_duplicate_status": "unknown",
+            "xml_buyer_name": xml_record.buyer_name,
+            "xml_buyer_vat": xml_record.buyer_vat,
+            "xml_buyer_ean": xml_record.buyer_ean,
+            "xml_seller_vat": xml_record.seller_vat,
+            "xml_seller_name": xml_record.seller_name,
+            "xml_seller_ean": xml_record.seller_ean,
+            "xml_seller_canal": xml_record.seller_canal,
+            "xml_order_type": xml_record.order_type,
+            "xml_order_number": xml_record.order_number,
+            "xml_buyer_order_number": xml_record.buyer_order_number,
+            "xml_order_date": xml_record.order_date,
+            "xml_linhas_encomenda": xml_record.linhas_encomenda,
+            "xml_duplicate_key": order_xml_duplicate_key(xml_record),
+            "xml_duplicate_status": "unknown",
         }
     )
     return enriched
 
 
 def _mark_duplicates(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    _mark_duplicate_status(rows, "edi_duplicate_key", "edi_duplicate_status")
+    _mark_duplicate_status(rows, "xml_duplicate_key", "xml_duplicate_status")
+    return rows
+
+
+def _mark_duplicate_status(rows: list[dict[str, object]], key_column: str, status_column: str) -> None:
     seen: set[str] = set()
     for row in rows:
-        duplicate_key = row.get("edi_duplicate_key")
+        duplicate_key = row.get(key_column)
         if not duplicate_key:
-            row["edi_duplicate_status"] = "unknown"
+            row[status_column] = "unknown"
         elif duplicate_key in seen:
-            row["edi_duplicate_status"] = "duplicate"
+            row[status_column] = "duplicate"
         else:
-            row["edi_duplicate_status"] = "unique"
+            row[status_column] = "unique"
             seen.add(str(duplicate_key))
-    return rows
 
 
 def _parse_order_edi_for_row(row: dict[str, object]) -> OrderEdiRecord:
     path = _resolve_order_edi_path(row)
-    if path is None:
+    if path is None or path.suffix.lower() == ".xml":
         return empty_order_edi_record()
     return parse_order_edi_file(path)
+
+
+def _parse_order_xml_for_row(row: dict[str, object]) -> OrderXmlRecord:
+    path = _resolve_order_edi_path(row)
+    if path is None or path.suffix.lower() != ".xml":
+        return empty_order_xml_record()
+    return parse_order_xml_file(path)
 
 
 def _resolve_order_edi_path(row: dict[str, object]) -> Path | None:

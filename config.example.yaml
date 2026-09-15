@@ -21,3 +21,18 @@ connections:
     error_dir: Erros
     duplicate_policy: report_only
     confirm_remote_processing: true
+  - name: beiersdorf_xml
+    enabled: false
+    flow_type: generic
+    protocol: ftp
+    host: ftp.example.test
+    port: 21
+    username: user
+    password_env: BEIERSDORF_FTP_PASSWORD
+    source_dir: ./inbox
+    remote_dir: /inbound
+    file_pattern: "*.XML"
+    sent_dir: Enviados
+    error_dir: Erros
+    duplicate_policy: move_to_duplicates
+    confirm_remote_processing: true

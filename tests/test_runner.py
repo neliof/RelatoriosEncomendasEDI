@@ -361,3 +361,47 @@ D0000015273289             20260724
     rows = store.report_rows()
     assert rows[-1]["status"] == "failed"
     assert rows[-1]["error_message"] == "move denied"
+
+
+def test_run_once_moves_duplicate_order_xml_to_duplicates_without_upload(tmp_path: Path):
+    source = tmp_path / "send"
+    sent = source / "Enviados"
+    source.mkdir()
+    sent.mkdir()
+    file_name = "Pedido_EDI_Imefar_5600000975855F002-202600143.XML"
+    order_content = """<?xml version="1.0" encoding="utf-8"?>
+<EOrders>
+  <EOrder>
+    <ByerOrderNumber>F002/202600143</ByerOrderNumber>
+    <OrderDate>2026-09-14</OrderDate>
+    <OrderType>F002</OrderType>
+    <BuyerVAT>511000685</BuyerVAT>
+    <BuyerEANCode>5600000975855</BuyerEANCode>
+    <SellerVAT>PT500043531</SellerVAT>
+    <SellerEANCode>5600000975855</SellerEANCode>
+    <SellerCanal>Mass Market</SellerCanal>
+    <BuyOrderItem><ItemLineNumber>1</ItemLineNumber></BuyOrderItem>
+  </EOrder>
+</EOrders>
+"""
+    (sent / file_name).write_text(order_content, encoding="utf-8")
+    new_file = source / file_name
+    new_file.write_text(order_content, encoding="utf-8")
+    connection = make_connection(source, file_pattern="*.XML", duplicate_policy="move_to_duplicates")
+    config = make_config(tmp_path, [connection])
+    store = initialized_store(config)
+    previous_id = store.record_detected(connection, source / file_name, "/inbound/" + file_name)
+    instant = datetime(2026, 9, 14, 10, 0, tzinfo=UTC)
+    store.record_transfer_result(previous_id, "sent", instant, instant, None)
+    store.record_confirmation(previous_id, "confirmed", instant)
+    fake = FakeClient()
+
+    summary = run_once(config, store, client_factory=lambda connection: fake)
+
+    assert summary.processed == 1
+    assert summary.sent == 0
+    assert summary.failed == 0
+    assert fake.uploaded == []
+    assert (source / "Duplicados" / file_name).exists()
+    rows = store.report_rows()
+    assert rows[-1]["status"] == "duplicate"

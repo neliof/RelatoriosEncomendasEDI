@@ -35,9 +35,11 @@ powershell.exe -ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEnco
 
 Por defeito, o script mantem relatorios e logs dos ultimos 30 dias. A retencao pode ser alterada com `-RetentionDays 60` ou desligada com `-DisableCleanup`.
 
-## Campos EDI no Relatorio de Envios
+## Campos no Relatorio de Envios
 
 Os relatorios `run-*` tambem analisam ficheiros `Pedido_EDI_*.txt` quando ainda existem na pasta original, em `Enviados` ou em `Erros`. O relatorio extrai tipo de mensagem, nome/GLN do remetente, nome/GLN do fornecedor, serie, numero da encomenda, referencia interna como `TER/F200/202600525`, numero de linhas de encomenda iniciadas por `D` e controlo de duplicados por chave EDI.
+
+Tambem sao suportadas encomendas XML `EOrders/EOrder`, incluindo os ficheiros Beiersdorf com `SellerVAT` `PT500043531`. Para estes XML, o relatorio extrai comprador, fornecedor, tipo, numero/data da encomenda, canal, numero de linhas `BuyOrderItem` e controlo de duplicados por chave XML.
 
 Para bloquear operacionalmente duplicados sem parar a execucao, configurar na ligacao:
 

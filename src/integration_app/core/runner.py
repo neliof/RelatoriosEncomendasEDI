@@ -9,6 +9,7 @@ from typing import Callable
 from integration_app.core.files import discover_files, is_stable, move_to_status_dir, remote_path_for
 from integration_app.models import AppConfig, ConnectionConfig
 from integration_app.order_edi import order_duplicate_key, parse_order_edi_file
+from integration_app.order_xml import order_xml_duplicate_key, parse_order_xml_file
 from integration_app.storage.sqlite_store import SQLiteStore
 from integration_app.transfers.base import TransferClient, build_transfer_client
 
@@ -117,7 +118,7 @@ def _close_defensively(client: TransferClient) -> None:
 def _is_duplicate_order(connection: ConnectionConfig, store: SQLiteStore, local_path: Path) -> bool:
     if connection.duplicate_policy != "move_to_duplicates":
         return False
-    current_key = order_duplicate_key(parse_order_edi_file(local_path))
+    current_key = _file_duplicate_key(local_path)
     if current_key is None:
         return False
     for row in store.report_rows():
@@ -126,9 +127,20 @@ def _is_duplicate_order(connection: ConnectionConfig, store: SQLiteStore, local_
         existing_path = _resolve_existing_order_path(row)
         if existing_path is None:
             continue
-        if order_duplicate_key(parse_order_edi_file(existing_path)) == current_key:
+        if _file_duplicate_key(existing_path) == current_key:
             return True
     return False
+
+
+def _file_duplicate_key(path: Path) -> str | None:
+    try:
+        if path.suffix.lower() == ".xml":
+            key = order_xml_duplicate_key(parse_order_xml_file(path))
+            return f"xml:{key}" if key is not None else None
+        key = order_duplicate_key(parse_order_edi_file(path))
+        return f"edi:{key}" if key is not None else None
+    except Exception:
+        return None
 
 
 def _resolve_existing_order_path(row: dict[str, object]) -> Path | None:
