@@ -211,6 +211,8 @@ O relatorio classifica tambem excepcoes:
 - `warning`: mensagem ainda nao processada, EDI sem linhas `DET` ou sem linha `TOT`;
 - `error`: EDI associado nao encontrado ou eventos de log com indicadores de erro/rejeicao, incluindo `cliente nao existe`.
 
+Para alem do relatorio completo, sao gerados ficheiros separados `-exceptions.csv` e `-exceptions.json` com apenas os registos em `warning` ou `error`. O comando imprime tambem um resumo de totais no terminal.
+
 ## Questoes Pendentes
 
 1. Confirmar se `Netixone\In` e a pasta real onde o ARTSOFT deposita encomendas para laboratorios.

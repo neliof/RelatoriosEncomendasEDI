@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
 from integration_app.config import load_config
 from integration_app.core.runner import run_once
-from integration_app.generix.reports import export_header_report
+from integration_app.generix.reports import export_header_report, summarize_rows
 from integration_app.logging_setup import configure_json_logging
 from integration_app.reports.exporters import export_reports
 from integration_app.storage.sqlite_store import SQLiteStore
@@ -53,6 +54,12 @@ def _generix_report_command(storage_root: Path, report_dir: Path, run_id: str | 
     written = export_header_report(storage_root, report_dir, report_id)
     for path in written:
         print(path)
+    rows = json.loads(written[1].read_text(encoding="utf-8"))
+    summary = summarize_rows(rows)
+    print(f"Total: {summary['total']}")
+    print(f"OK: {summary['ok']}")
+    print(f"Warnings: {summary['warnings']}")
+    print(f"Errors: {summary['errors']}")
     return 0
 
 

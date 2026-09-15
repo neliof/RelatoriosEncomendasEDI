@@ -49,7 +49,12 @@ disposition=automatic-action/MDN-sent-automatically; processed
 
     written = export_header_report(root, tmp_path / "reports", run_id="generix-test")
 
-    assert written == [tmp_path / "reports" / "generix-test.csv", tmp_path / "reports" / "generix-test.json"]
+    assert written == [
+        tmp_path / "reports" / "generix-test.csv",
+        tmp_path / "reports" / "generix-test.json",
+        tmp_path / "reports" / "generix-test-exceptions.csv",
+        tmp_path / "reports" / "generix-test-exceptions.json",
+    ]
     with written[0].open("r", newline="", encoding="utf-8") as handle:
         csv_rows = list(csv.DictReader(handle))
     json_rows = json.loads(written[1].read_text(encoding="utf-8"))
@@ -139,3 +144,45 @@ cliente nao existe
     assert rows["NXC-PENDING"]["exception_reason"] == "not_processed"
     assert rows["NXC-ERROR"]["exception_level"] == "error"
     assert rows["NXC-ERROR"]["exception_reason"] == "not_processed; edi_not_found; log_error"
+
+
+def test_export_header_report_writes_exception_only_files(tmp_path: Path):
+    root = tmp_path / "storage" / "cpip_1"
+    sent = root / "sent" / "headers"
+    sent_data = root / "sent" / "data"
+    sent.mkdir(parents=True)
+    sent_data.mkdir(parents=True)
+    (sent_data / "ok.txt").write_text(
+        "CAB220 202600552                          EntregaFarm\nDET000001\nTOT00000000001\n",
+        encoding="utf-8",
+    )
+    (sent / "ok.hdr").write_text(
+        """unique-id=NXC-OK
+subject=ok.txt
+disposition=automatic-action/MDN-sent-automatically; processed
+""",
+        encoding="utf-8",
+    )
+    (sent_data / "warning.txt").write_text(
+        "CAB220 202600552                          EntregaFarm\nDET000001\n",
+        encoding="utf-8",
+    )
+    (sent / "warning.hdr").write_text(
+        """unique-id=NXC-WARNING
+subject=warning.txt
+disposition=automatic-action/MDN-sent-automatically; processed
+""",
+        encoding="utf-8",
+    )
+
+    written = export_header_report(root, tmp_path / "reports", run_id="split")
+
+    exception_csv = tmp_path / "reports" / "split-exceptions.csv"
+    exception_json = tmp_path / "reports" / "split-exceptions.json"
+    assert exception_csv in written
+    assert exception_json in written
+    with exception_csv.open("r", newline="", encoding="utf-8") as handle:
+        csv_rows = list(csv.DictReader(handle))
+    json_rows = json.loads(exception_json.read_text(encoding="utf-8"))
+    assert [row["unique_id"] for row in csv_rows] == ["NXC-WARNING"]
+    assert [row["unique_id"] for row in json_rows] == ["NXC-WARNING"]

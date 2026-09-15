@@ -22,6 +22,7 @@ python -m integration_app.app generix-report --storage-root "C:\Users\TI\Documen
 ```
 
 O comando gera CSV e JSON com `unique-id`, assunto, origem, destino, estado `processed`, excepcoes operacionais, caminho do corpo, eventos do bloco `[log]` e resumo do EDI associado (`CAB`, quantidade de linhas `DET`, existencia de `TOT`, codigos GLN e nome de origem quando detectavel).
+Tambem gera ficheiros `-exceptions.csv` e `-exceptions.json` apenas com registos sinalizados, e imprime no terminal os totais `Total`, `OK`, `Warnings` e `Errors`.
 
 ## Componentes
 

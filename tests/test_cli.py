@@ -31,12 +31,18 @@ connections: []
     assert any((tmp_path / "logs").glob("*.jsonl"))
 
 
-def test_main_generix_report_returns_zero(tmp_path: Path):
+def test_main_generix_report_returns_zero(tmp_path: Path, capsys):
     root = tmp_path / "storage" / "cpip_1"
     headers = root / "sent" / "headers"
+    data = root / "sent" / "data"
     headers.mkdir(parents=True)
+    data.mkdir(parents=True)
+    (data / "sample.txt").write_text(
+        "CAB220 202600552                          EntregaFarm\nDET000001\nTOT00000000001\n",
+        encoding="utf-8",
+    )
     (headers / "sample.hdr").write_text(
-        "unique-id=NXC-1\nsubject=Encomenda.txt\n[log]\nthe message was PROCESSED\n",
+        "unique-id=NXC-1\nsubject=sample.txt\ndisposition=automatic-action/MDN-sent-automatically; processed\n",
         encoding="utf-8",
     )
 
@@ -55,3 +61,10 @@ def test_main_generix_report_returns_zero(tmp_path: Path):
     assert exit_code == 0
     assert (tmp_path / "reports" / "manual.csv").exists()
     assert (tmp_path / "reports" / "manual.json").exists()
+    assert (tmp_path / "reports" / "manual-exceptions.csv").exists()
+    assert (tmp_path / "reports" / "manual-exceptions.json").exists()
+    output = capsys.readouterr().out
+    assert "Total: 1" in output
+    assert "OK: 1" in output
+    assert "Warnings: 0" in output
+    assert "Errors: 0" in output

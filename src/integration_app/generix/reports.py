@@ -37,11 +37,29 @@ def export_header_report(storage_root: Path, report_dir: Path, run_id: str) -> l
     report_dir.mkdir(parents=True, exist_ok=True)
     records = _scan_storage_root(storage_root)
     rows = [_record_to_row(record, storage_root) for record in records]
+    exception_rows = [row for row in rows if row["exception_level"] != "ok"]
     csv_path = report_dir / f"{run_id}.csv"
     json_path = report_dir / f"{run_id}.json"
+    exception_csv_path = report_dir / f"{run_id}-exceptions.csv"
+    exception_json_path = report_dir / f"{run_id}-exceptions.json"
     _write_csv(csv_path, rows)
     _write_json(json_path, rows)
-    return [csv_path, json_path]
+    _write_csv(exception_csv_path, exception_rows)
+    _write_json(exception_json_path, exception_rows)
+    return [csv_path, json_path, exception_csv_path, exception_json_path]
+
+
+def summarize_rows(rows: list[dict[str, object]]) -> dict[str, int]:
+    return {
+        "total": len(rows),
+        "ok": _count_level(rows, "ok"),
+        "warnings": _count_level(rows, "warning"),
+        "errors": _count_level(rows, "error"),
+    }
+
+
+def _count_level(rows: list[dict[str, object]], level: str) -> int:
+    return sum(1 for row in rows if row["exception_level"] == level)
 
 
 def _scan_storage_root(storage_root: Path) -> list[GenerixHeaderRecord]:
