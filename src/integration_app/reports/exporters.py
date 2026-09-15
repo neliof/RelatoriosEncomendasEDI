@@ -6,6 +6,7 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
+from integration_app.order_edi import OrderEdiRecord, empty_order_edi_record, parse_order_edi_file
 from integration_app.storage.sqlite_store import SQLiteStore
 
 
@@ -21,12 +22,21 @@ REPORT_COLUMNS = [
     "confirmation_status",
     "confirmation_checked_at",
     "error_message",
+    "edi_tipo_mensagem",
+    "edi_remetente_nome",
+    "edi_remetente_gln",
+    "edi_fornecedor_nome",
+    "edi_fornecedor_gln",
+    "edi_serie_encomenda",
+    "edi_numero_encomenda",
+    "edi_numero_encomenda_conteudo",
+    "edi_linhas_encomenda",
 ]
 
 
 def export_reports(store: SQLiteStore, report_dir: Path, run_id: str) -> list[Path]:
     report_dir.mkdir(parents=True, exist_ok=True)
-    rows = store.report_rows()
+    rows = [_enrich_row(row) for row in store.report_rows()]
     csv_path = report_dir / f"{run_id}.csv"
     json_path = report_dir / f"{run_id}.json"
     xlsx_path = report_dir / f"{run_id}.xlsx"
@@ -55,3 +65,47 @@ def _write_xlsx(path: Path, rows: list[dict[str, object]]) -> None:
     for row in rows:
         sheet.append([row.get(column) for column in REPORT_COLUMNS])
     workbook.save(path)
+
+
+def _enrich_row(row: dict[str, object]) -> dict[str, object]:
+    enriched = dict(row)
+    edi_record = _parse_order_edi_for_row(row)
+    enriched.update(
+        {
+            "edi_tipo_mensagem": edi_record.tipo_mensagem,
+            "edi_remetente_nome": edi_record.remetente_nome,
+            "edi_remetente_gln": edi_record.remetente_gln,
+            "edi_fornecedor_nome": edi_record.fornecedor_nome,
+            "edi_fornecedor_gln": edi_record.fornecedor_gln,
+            "edi_serie_encomenda": edi_record.serie_encomenda,
+            "edi_numero_encomenda": edi_record.numero_encomenda,
+            "edi_numero_encomenda_conteudo": edi_record.numero_encomenda_conteudo,
+            "edi_linhas_encomenda": edi_record.linhas_encomenda,
+        }
+    )
+    return enriched
+
+
+def _parse_order_edi_for_row(row: dict[str, object]) -> OrderEdiRecord:
+    path = _resolve_order_edi_path(row)
+    if path is None:
+        return empty_order_edi_record()
+    return parse_order_edi_file(path)
+
+
+def _resolve_order_edi_path(row: dict[str, object]) -> Path | None:
+    local_path = row.get("local_path")
+    if not isinstance(local_path, str):
+        return None
+    path = Path(local_path)
+    if path.exists():
+        return path
+    if row.get("status") in {"sent", "confirmed"}:
+        sent_path = path.parent / "Enviados" / path.name
+        if sent_path.exists():
+            return sent_path
+    if row.get("status") == "failed":
+        error_path = path.parent / "Erros" / path.name
+        if error_path.exists():
+            return error_path
+    return None

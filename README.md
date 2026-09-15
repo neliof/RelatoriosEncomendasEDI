@@ -35,6 +35,10 @@ powershell.exe -ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEnco
 
 Por defeito, o script mantem relatorios e logs dos ultimos 30 dias. A retencao pode ser alterada com `-RetentionDays 60` ou desligada com `-DisableCleanup`.
 
+## Campos EDI no Relatorio de Envios
+
+Os relatorios `run-*` tambem analisam ficheiros `Pedido_EDI_*.txt` quando ainda existem na pasta original, em `Enviados` ou em `Erros`. O relatorio extrai tipo de mensagem, nome/GLN do remetente, nome/GLN do fornecedor, serie, numero da encomenda, referencia interna como `TER/F200/202600525` e numero de linhas de encomenda iniciadas por `D`.
+
 ## Componentes
 
 - Configuracao em YAML.
@@ -49,4 +53,5 @@ Por defeito, o script mantem relatorios e logs dos ultimos 30 dias. A retencao p
 - Design: `docs/superpowers/specs/2026-09-14-integracao-ftp-sftp-generix-mvp-design.md`
 - Plano: `docs/superpowers/plans/2026-09-14-integracao-ftp-sftp-generix-mvp-implementation.md`
 - Generix: `docs/generix-mailbox-mapping.md`
+- Campos EDI: `docs/order-edi-report-fields.md`
 - Windows Task Scheduler: `docs/install-windows-task-scheduler.md`
