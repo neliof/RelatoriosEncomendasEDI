@@ -9,6 +9,14 @@
 5. Copiar `config.example.yaml` para `config.yaml`.
 6. Definir variaveis de ambiente das passwords usadas no YAML.
 
+Para gravar a password FTP no ambiente do utilizador Windows sem a escrever no `config.yaml`:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\set-ftp-password-user.ps1"
+```
+
+Este comando pede a password no terminal e guarda a variavel `PRIMEIRA_LIGACAO_FTP_PASSWORD` no perfil do utilizador. Depois de executar, abrir uma nova sessao PowerShell antes de testar manualmente.
+
 ## Execucao Manual
 
 ```powershell
