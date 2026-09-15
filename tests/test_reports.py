@@ -121,3 +121,39 @@ D0000015273289             20260724
     assert "unique" in rows[1]
     assert "duplicate" in rows[2]
     assert "unknown" in rows[3]
+
+
+def test_export_reports_enriches_duplicate_order_edi_from_duplicates_folder(tmp_path: Path):
+    store = SQLiteStore(tmp_path / "integration.db")
+    store.initialize()
+    source = tmp_path / "send"
+    duplicates = source / "Duplicados"
+    duplicates.mkdir(parents=True)
+    connection = ConnectionConfig(
+        name="lab",
+        enabled=True,
+        flow_type="generic",
+        protocol="ftp",
+        host="ftp.example.test",
+        port=21,
+        username="user",
+        source_dir=source,
+        remote_dir="/inbound",
+        file_pattern="*.txt",
+    )
+    file_name = "Pedido_EDI_Entregafarm_BAYER_F200-202600525.txt"
+    (duplicates / file_name).write_text(
+        """HPEDIDO0001               PT5106785059125042
+C   PT500043256                                                                                                                    2026072400010050         0001                                                                                          TER/F200/202600525
+D0000015273289             20260724
+""",
+        encoding="utf-8",
+    )
+    event_id = store.record_detected(connection, source / file_name, "/inbound/" + file_name)
+    instant = datetime(2026, 9, 14, 10, 0, tzinfo=UTC)
+    store.record_transfer_result(event_id, "duplicate", instant, instant, "Duplicate order EDI")
+
+    export_reports(store, tmp_path / "reports", "run-duplicate-folder")
+
+    csv_text = (tmp_path / "reports" / "run-duplicate-folder.csv").read_text(encoding="utf-8")
+    assert "PT5106785059125042|PT500043256|F200|202600525" in csv_text

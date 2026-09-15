@@ -55,6 +55,18 @@ def empty_order_edi_record() -> OrderEdiRecord:
     )
 
 
+def order_duplicate_key(record: OrderEdiRecord) -> str | None:
+    parts = [
+        record.remetente_gln,
+        record.fornecedor_gln,
+        record.serie_encomenda,
+        record.numero_encomenda,
+    ]
+    if any(part is None for part in parts):
+        return None
+    return "|".join(str(part) for part in parts)
+
+
 def _parse_filename(filename: str) -> dict[str, str]:
     match = FILENAME_PATTERN.match(Path(filename).stem)
     if not match:

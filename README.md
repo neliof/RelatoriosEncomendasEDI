@@ -39,6 +39,14 @@ Por defeito, o script mantem relatorios e logs dos ultimos 30 dias. A retencao p
 
 Os relatorios `run-*` tambem analisam ficheiros `Pedido_EDI_*.txt` quando ainda existem na pasta original, em `Enviados` ou em `Erros`. O relatorio extrai tipo de mensagem, nome/GLN do remetente, nome/GLN do fornecedor, serie, numero da encomenda, referencia interna como `TER/F200/202600525`, numero de linhas de encomenda iniciadas por `D` e controlo de duplicados por chave EDI.
 
+Para bloquear operacionalmente duplicados sem parar a execucao, configurar na ligacao:
+
+```yaml
+duplicate_policy: move_to_duplicates
+```
+
+Neste modo, encomendas repetidas sao movidas para `Duplicados` e nao sao enviadas.
+
 ## Componentes
 
 - Configuracao em YAML.

@@ -19,4 +19,5 @@ connections:
     file_pattern: "*.edi"
     sent_dir: Enviados
     error_dir: Erros
+    duplicate_policy: report_only
     confirm_remote_processing: true

@@ -3,10 +3,12 @@ from __future__ import annotations
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Callable
 
 from integration_app.core.files import discover_files, is_stable, move_to_status_dir, remote_path_for
 from integration_app.models import AppConfig, ConnectionConfig
+from integration_app.order_edi import order_duplicate_key, parse_order_edi_file
 from integration_app.storage.sqlite_store import SQLiteStore
 from integration_app.transfers.base import TransferClient, build_transfer_client
 
@@ -43,6 +45,12 @@ def run_once(
             remote_path = remote_path_for(connection, local_path)
             event_id = store.record_detected(connection, local_path, remote_path)
             started = datetime.now(UTC)
+            if _is_duplicate_order(connection, store, local_path):
+                finished = datetime.now(UTC)
+                store.record_transfer_result(event_id, "duplicate", started, finished, "Duplicate order EDI")
+                move_to_status_dir(local_path, "Duplicados")
+                summary = summary.add(processed=1)
+                continue
             client: TransferClient | None = None
             try:
                 client = client_factory(connection)
@@ -97,3 +105,42 @@ def _check_pending_confirmations(
 def _close_defensively(client: TransferClient) -> None:
     with suppress(Exception):
         client.close()
+
+
+def _is_duplicate_order(connection: ConnectionConfig, store: SQLiteStore, local_path: Path) -> bool:
+    if connection.duplicate_policy != "move_to_duplicates":
+        return False
+    current_key = order_duplicate_key(parse_order_edi_file(local_path))
+    if current_key is None:
+        return False
+    for row in store.report_rows():
+        if row.get("connection_name") != connection.name:
+            continue
+        existing_path = _resolve_existing_order_path(row)
+        if existing_path is None:
+            continue
+        if order_duplicate_key(parse_order_edi_file(existing_path)) == current_key:
+            return True
+    return False
+
+
+def _resolve_existing_order_path(row: dict[str, object]) -> Path | None:
+    local_path = row.get("local_path")
+    if not isinstance(local_path, str):
+        return None
+    path = Path(local_path)
+    if path.exists():
+        return path
+    status = row.get("status")
+    if status in {"sent", "confirmed", "duplicate"}:
+        sent_path = path.parent / "Enviados" / path.name
+        if sent_path.exists():
+            return sent_path
+        duplicate_path = path.parent / "Duplicados" / path.name
+        if duplicate_path.exists():
+            return duplicate_path
+    if status == "failed":
+        error_path = path.parent / "Erros" / path.name
+        if error_path.exists():
+            return error_path
+    return None

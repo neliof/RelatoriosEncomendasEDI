@@ -63,6 +63,8 @@ def make_connection(
     name: str = "lab",
     enabled: bool = True,
     remote_dir: str = "/inbound",
+    file_pattern: str = "*.edi",
+    duplicate_policy: str = "report_only",
 ) -> ConnectionConfig:
     return ConnectionConfig(
         name=name,
@@ -74,7 +76,8 @@ def make_connection(
         username="user",
         source_dir=source,
         remote_dir=remote_dir,
-        file_pattern="*.edi",
+        file_pattern=file_pattern,
+        duplicate_policy=duplicate_policy,
     )
 
 
@@ -258,3 +261,36 @@ def test_run_once_continues_when_confirmation_check_fails_for_one_connection(tmp
 
     assert summary.sent == 1
     assert (succeeding_source / "Enviados" / "good.edi").exists()
+
+
+def test_run_once_moves_duplicate_order_to_duplicates_without_upload(tmp_path: Path):
+    source = tmp_path / "send"
+    sent = source / "Enviados"
+    source.mkdir()
+    sent.mkdir()
+    file_name = "Pedido_EDI_Entregafarm_BAYER_F200-202600525.txt"
+    order_content = """HPEDIDO0001               PT5106785059125042
+C   PT500043256                                                                                                                    2026072400010050         0001                                                                                          TER/F200/202600525
+D0000015273289             20260724
+"""
+    (sent / file_name).write_text(order_content, encoding="utf-8")
+    new_file = source / file_name
+    new_file.write_text(order_content, encoding="utf-8")
+    connection = make_connection(source, file_pattern="*.txt", duplicate_policy="move_to_duplicates")
+    config = make_config(tmp_path, [connection])
+    store = initialized_store(config)
+    previous_id = store.record_detected(connection, source / file_name, "/inbound/" + file_name)
+    instant = datetime(2026, 9, 14, 10, 0, tzinfo=UTC)
+    store.record_transfer_result(previous_id, "sent", instant, instant, None)
+    store.record_confirmation(previous_id, "confirmed", instant)
+    fake = FakeClient()
+
+    summary = run_once(config, store, client_factory=lambda connection: fake)
+
+    assert summary.processed == 1
+    assert summary.sent == 0
+    assert summary.failed == 0
+    assert fake.uploaded == []
+    assert (source / "Duplicados" / file_name).exists()
+    rows = store.report_rows()
+    assert rows[-1]["status"] == "duplicate"

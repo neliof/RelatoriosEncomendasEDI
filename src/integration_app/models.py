@@ -36,6 +36,7 @@ class ConnectionConfig:
     private_key_path: Path | None = None
     private_key_passphrase_env: str | None = None
     confirm_remote_processing: bool = True
+    duplicate_policy: str = "report_only"
 
     def resolve_password(self) -> str | None:
         if self.password_env is None:

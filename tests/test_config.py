@@ -43,6 +43,70 @@ connections:
     assert config.connections[0].name == "laboratorio_x"
     assert config.connections[0].protocol == "sftp"
     assert config.connections[0].resolve_password() == "secret"
+    assert config.connections[0].duplicate_policy == "report_only"
+
+
+def test_load_config_parses_duplicate_policy(tmp_path: Path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+app:
+  database_path: data/integration.db
+  log_dir: logs
+  report_dir: reports
+defaults:
+  stable_after_seconds: 30
+  confirmation_timeout_minutes: 120
+connections:
+  - name: laboratorio_x
+    enabled: true
+    flow_type: generic
+    protocol: ftp
+    host: ftp.example.test
+    port: 21
+    username: user
+    source_dir: ./inbox
+    remote_dir: /inbound
+    file_pattern: "*.txt"
+    duplicate_policy: move_to_duplicates
+""",
+        encoding="utf-8",
+    )
+
+    config = load_config(config_path)
+
+    assert config.connections[0].duplicate_policy == "move_to_duplicates"
+
+
+def test_load_config_rejects_unknown_duplicate_policy(tmp_path: Path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+app:
+  database_path: data/integration.db
+  log_dir: logs
+  report_dir: reports
+defaults:
+  stable_after_seconds: 30
+  confirmation_timeout_minutes: 120
+connections:
+  - name: laboratorio_x
+    enabled: true
+    flow_type: generic
+    protocol: ftp
+    host: ftp.example.test
+    port: 21
+    username: user
+    source_dir: ./inbox
+    remote_dir: /inbound
+    file_pattern: "*.txt"
+    duplicate_policy: block
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="Unsupported duplicate_policy: block"):
+        load_config(config_path)
 
 
 def test_load_config_rejects_duplicate_connection_names(tmp_path: Path):

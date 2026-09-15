@@ -65,6 +65,7 @@ def _parse_connection(raw: Any) -> ConnectionConfig:
         private_key_path=Path(raw["private_key_path"]) if raw.get("private_key_path") else None,
         private_key_passphrase_env=_optional_str(raw, "private_key_passphrase_env"),
         confirm_remote_processing=_optional_bool(raw, "confirm_remote_processing", True),
+        duplicate_policy=_duplicate_policy(raw),
     )
 
 
@@ -103,6 +104,13 @@ def _optional_bool(raw: dict[str, Any], key: str, default: bool) -> bool:
     value = raw.get(key, default)
     if not isinstance(value, bool):
         raise ValueError(f"{key} must be a boolean")
+    return value
+
+
+def _duplicate_policy(raw: dict[str, Any]) -> str:
+    value = raw.get("duplicate_policy", "report_only")
+    if value not in {"report_only", "move_to_duplicates"}:
+        raise ValueError(f"Unsupported duplicate_policy: {value}")
     return value
 
 

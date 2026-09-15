@@ -6,7 +6,7 @@ from pathlib import Path
 
 from openpyxl import Workbook
 
-from integration_app.order_edi import OrderEdiRecord, empty_order_edi_record, parse_order_edi_file
+from integration_app.order_edi import OrderEdiRecord, empty_order_edi_record, order_duplicate_key, parse_order_edi_file
 from integration_app.storage.sqlite_store import SQLiteStore
 
 
@@ -83,7 +83,7 @@ def _enrich_row(row: dict[str, object]) -> dict[str, object]:
             "edi_numero_encomenda": edi_record.numero_encomenda,
             "edi_numero_encomenda_conteudo": edi_record.numero_encomenda_conteudo,
             "edi_linhas_encomenda": edi_record.linhas_encomenda,
-            "edi_duplicate_key": _duplicate_key(edi_record),
+            "edi_duplicate_key": order_duplicate_key(edi_record),
             "edi_duplicate_status": "unknown",
         }
     )
@@ -102,18 +102,6 @@ def _mark_duplicates(rows: list[dict[str, object]]) -> list[dict[str, object]]:
             row["edi_duplicate_status"] = "unique"
             seen.add(str(duplicate_key))
     return rows
-
-
-def _duplicate_key(edi_record: OrderEdiRecord) -> str | None:
-    parts = [
-        edi_record.remetente_gln,
-        edi_record.fornecedor_gln,
-        edi_record.serie_encomenda,
-        edi_record.numero_encomenda,
-    ]
-    if any(part is None for part in parts):
-        return None
-    return "|".join(str(part) for part in parts)
 
 
 def _parse_order_edi_for_row(row: dict[str, object]) -> OrderEdiRecord:
@@ -138,4 +126,8 @@ def _resolve_order_edi_path(row: dict[str, object]) -> Path | None:
         error_path = path.parent / "Erros" / path.name
         if error_path.exists():
             return error_path
+    if row.get("status") == "duplicate":
+        duplicate_path = path.parent / "Duplicados" / path.name
+        if duplicate_path.exists():
+            return duplicate_path
     return None

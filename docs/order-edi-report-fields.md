@@ -29,7 +29,7 @@ C:\Edi\Send\Enviados\Pedido_EDI_Entregafarm_BAYER_F200-202600525.txt
 - `edi_duplicate_key`
 - `edi_duplicate_status`
 
-Se o ficheiro ja tiver sido movido, o relatorio tenta ler o ficheiro em `Enviados` quando o estado e `sent`, ou em `Erros` quando o estado e `failed`.
+Se o ficheiro ja tiver sido movido, o relatorio tenta ler o ficheiro em `Enviados` quando o estado e `sent` ou `confirmed`, em `Erros` quando o estado e `failed`, ou em `Duplicados` quando o estado e `duplicate`.
 
 ## Controlo de Duplicados
 
@@ -46,3 +46,14 @@ Estados possiveis:
 - `unique`: primeira ocorrencia encontrada no historico do relatorio;
 - `duplicate`: ja existia uma ocorrencia anterior com a mesma chave;
 - `unknown`: faltam campos para formar a chave.
+
+A Fase 2 acrescenta controlo operacional configuravel por ligacao:
+
+```yaml
+duplicate_policy: report_only
+```
+
+Valores aceites:
+
+- `report_only`: comportamento por defeito; envia normalmente e apenas marca duplicados no relatorio;
+- `move_to_duplicates`: antes do upload, se ja existir no historico uma encomenda com a mesma chave, move o novo ficheiro para `Duplicados`, nao envia para FTP/SFTP e regista estado `duplicate`.
