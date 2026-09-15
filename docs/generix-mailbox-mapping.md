@@ -192,9 +192,16 @@ E exporta CSV/JSON com campos uteis para correlacao operacional:
 - `receipt`;
 - `disposition`;
 - `processed`;
+- `edi_path`;
+- `edi_origin_name`;
+- `edi_detail_count`;
+- `edi_has_total`;
+- `edi_gln_codes`;
 - `body_path`;
 - `header_path`;
 - `log_events`.
+
+Quando o `body-path` existe ou quando ha um ficheiro `data\<nome-do-header>.txt`, o relatorio le tambem o EDI associado. A extraccao EDI e conservadora nesta fase: guarda a linha `CAB`, conta linhas `DET`, detecta se existe `TOT`, lista codigos `PT...` e tenta identificar o primeiro nome plausivel no `CAB`.
 
 ## Questoes Pendentes
 
