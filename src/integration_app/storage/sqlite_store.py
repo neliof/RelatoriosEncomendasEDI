@@ -57,6 +57,12 @@ class SQLiteStore:
                 );
                 """
             )
+            conn.execute(
+                "UPDATE file_events SET confirmation_status = 'failed' WHERE status = 'failed' AND confirmation_status = 'pending'"
+            )
+            conn.execute(
+                "UPDATE file_events SET confirmation_status = 'skipped' WHERE status = 'duplicate' AND confirmation_status = 'pending'"
+            )
 
     def record_detected(self, connection: ConnectionConfig, local_path: Path, remote_path: str) -> int:
         now = datetime.now(UTC).isoformat()
@@ -92,14 +98,21 @@ class SQLiteStore:
         finished_at: datetime,
         error_message: str | None,
     ) -> None:
+        confirmation_status = _confirmation_status_for_transfer(status)
         with self._connect() as conn:
             conn.execute(
                 "INSERT INTO transfer_attempts (event_id, status, started_at, finished_at, error_message) VALUES (?, ?, ?, ?, ?)",
                 (event_id, status, started_at.isoformat(), finished_at.isoformat(), error_message),
             )
             conn.execute(
-                "UPDATE file_events SET status = ?, sent_at = ?, error_message = ? WHERE id = ?",
-                (status, finished_at.isoformat() if status == "sent" else None, error_message, event_id),
+                "UPDATE file_events SET status = ?, sent_at = ?, confirmation_status = ?, error_message = ? WHERE id = ?",
+                (
+                    status,
+                    finished_at.isoformat() if status == "sent" else None,
+                    confirmation_status,
+                    error_message,
+                    event_id,
+                ),
             )
 
     def pending_confirmations(self) -> list[PendingConfirmation]:
@@ -151,3 +164,13 @@ class SQLiteStore:
         conn.execute("PRAGMA foreign_keys = ON")
         conn.row_factory = sqlite3.Row
         return conn
+
+
+def _confirmation_status_for_transfer(status: str) -> str:
+    if status == "sent":
+        return "pending"
+    if status == "duplicate":
+        return "skipped"
+    if status == "failed":
+        return "failed"
+    return status
