@@ -21,7 +21,7 @@ $env:PYTHONPATH='src'
 python -m integration_app.app generix-report --storage-root "C:\Users\TI\Documents\Influe-Generix\Bat\storage\cpip_20122611437260" --report-dir reports
 ```
 
-O comando gera CSV e JSON com `unique-id`, assunto, origem, destino, estado `processed`, caminho do corpo, eventos do bloco `[log]` e resumo do EDI associado (`CAB`, quantidade de linhas `DET`, existencia de `TOT`, codigos GLN e nome de origem quando detectavel).
+O comando gera CSV e JSON com `unique-id`, assunto, origem, destino, estado `processed`, excepcoes operacionais, caminho do corpo, eventos do bloco `[log]` e resumo do EDI associado (`CAB`, quantidade de linhas `DET`, existencia de `TOT`, codigos GLN e nome de origem quando detectavel).
 
 ## Componentes
 

@@ -61,3 +61,81 @@ disposition=automatic-action/MDN-sent-automatically; processed
     assert json_rows[1]["edi_has_total"] is True
     assert json_rows[1]["edi_origin_name"] == "EntregaFarm- Logística Farmacêutica"
     assert "PT5106785059125042" in json_rows[1]["edi_gln_codes"]
+    assert json_rows[1]["exception_level"] == "ok"
+    assert json_rows[1]["exception_reason"] == ""
+
+
+def test_export_header_report_flags_exceptions(tmp_path: Path):
+    root = tmp_path / "storage" / "cpip_1"
+    sent = root / "sent" / "headers"
+    sent_data = root / "sent" / "data"
+    received = root / "received" / "headers"
+    sent.mkdir(parents=True)
+    sent_data.mkdir(parents=True)
+    received.mkdir(parents=True)
+    (sent_data / "missing-total.txt").write_text(
+        "CAB220 202600552                          EntregaFarm\nDET000001\n",
+        encoding="utf-8",
+    )
+    (sent / "missing-total.hdr").write_text(
+        """unique-id=NXC-NO-TOT
+subject=missing-total.txt
+disposition=automatic-action/MDN-sent-automatically; processed
+[log]
+the message was PROCESSED
+""",
+        encoding="utf-8",
+    )
+    (sent_data / "no-details.txt").write_text(
+        "CAB220 202600552                          EntregaFarm\nTOT00000000000\n",
+        encoding="utf-8",
+    )
+    (sent / "no-details.hdr").write_text(
+        """unique-id=NXC-NO-DET
+subject=no-details.txt
+disposition=automatic-action/MDN-sent-automatically; processed
+""",
+        encoding="utf-8",
+    )
+    (sent / "missing-edi.hdr").write_text(
+        """unique-id=NXC-MISSING
+subject=missing-edi.txt
+disposition=automatic-action/MDN-sent-automatically; processed
+""",
+        encoding="utf-8",
+    )
+    (root / "received" / "data").mkdir(parents=True)
+    (root / "received" / "data" / "not-processed.txt").write_text(
+        "CAB220 202600552                          Farmacia Teste\nDET000001\nTOT00000000001\n",
+        encoding="utf-8",
+    )
+    (received / "not-processed.hdr").write_text(
+        """unique-id=NXC-PENDING
+subject=ord.txt
+[log]
+message received.
+""",
+        encoding="utf-8",
+    )
+    (received / "error-log.hdr").write_text(
+        """unique-id=NXC-ERROR
+subject=ord-error.txt
+[log]
+cliente nao existe
+""",
+        encoding="utf-8",
+    )
+
+    written = export_header_report(root, tmp_path / "reports", run_id="exceptions")
+
+    rows = {row["unique_id"]: row for row in json.loads(written[1].read_text(encoding="utf-8"))}
+    assert rows["NXC-NO-TOT"]["exception_level"] == "warning"
+    assert rows["NXC-NO-TOT"]["exception_reason"] == "edi_missing_total"
+    assert rows["NXC-NO-DET"]["exception_level"] == "warning"
+    assert rows["NXC-NO-DET"]["exception_reason"] == "edi_without_details"
+    assert rows["NXC-MISSING"]["exception_level"] == "error"
+    assert rows["NXC-MISSING"]["exception_reason"] == "edi_not_found"
+    assert rows["NXC-PENDING"]["exception_level"] == "warning"
+    assert rows["NXC-PENDING"]["exception_reason"] == "not_processed"
+    assert rows["NXC-ERROR"]["exception_level"] == "error"
+    assert rows["NXC-ERROR"]["exception_reason"] == "not_processed; edi_not_found; log_error"

@@ -20,6 +20,8 @@ GENERIX_REPORT_COLUMNS = [
     "receipt",
     "disposition",
     "processed",
+    "exception_level",
+    "exception_reason",
     "edi_path",
     "edi_origin_name",
     "edi_detail_count",
@@ -51,6 +53,7 @@ def _scan_storage_root(storage_root: Path) -> list[GenerixHeaderRecord]:
 
 def _record_to_row(record: GenerixHeaderRecord, storage_root: Path) -> dict[str, object]:
     edi_record = _parse_related_edi(record, storage_root)
+    exception_level, exception_reason = _classify_exception(record, edi_record)
     return {
         "flow_type": record.flow_type,
         "unique_id": record.unique_id,
@@ -63,6 +66,8 @@ def _record_to_row(record: GenerixHeaderRecord, storage_root: Path) -> dict[str,
         "receipt": record.receipt,
         "disposition": record.disposition,
         "processed": record.processed,
+        "exception_level": exception_level,
+        "exception_reason": exception_reason,
         "edi_path": str(edi_record.path) if edi_record else None,
         "edi_origin_name": edi_record.origin_name if edi_record else None,
         "edi_detail_count": edi_record.detail_count if edi_record else None,
@@ -90,6 +95,33 @@ def _resolve_body_path(record: GenerixHeaderRecord, storage_root: Path) -> Path 
     if fallback_path.exists():
         return fallback_path
     return None
+
+
+def _classify_exception(record: GenerixHeaderRecord, edi_record: GenerixEdiRecord | None) -> tuple[str, str]:
+    reasons: list[str] = []
+    if not record.processed:
+        reasons.append("not_processed")
+    if edi_record is None:
+        reasons.append("edi_not_found")
+    else:
+        if edi_record.detail_count == 0:
+            reasons.append("edi_without_details")
+        if not edi_record.has_total:
+            reasons.append("edi_missing_total")
+    if _has_log_error(record):
+        reasons.append("log_error")
+
+    if not reasons:
+        return "ok", ""
+    if "edi_not_found" in reasons or "log_error" in reasons:
+        return "error", "; ".join(reasons)
+    return "warning", "; ".join(reasons)
+
+
+def _has_log_error(record: GenerixHeaderRecord) -> bool:
+    error_terms = ("error", "failed", "reject", "rejeit", "cliente nao existe", "cliente não existe")
+    log_text = "\n".join(record.log_events).lower()
+    return any(term in log_text for term in error_terms)
 
 
 def _write_csv(path: Path, rows: list[dict[str, object]]) -> None:

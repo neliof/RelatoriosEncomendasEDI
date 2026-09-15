@@ -192,6 +192,8 @@ E exporta CSV/JSON com campos uteis para correlacao operacional:
 - `receipt`;
 - `disposition`;
 - `processed`;
+- `exception_level`;
+- `exception_reason`;
 - `edi_path`;
 - `edi_origin_name`;
 - `edi_detail_count`;
@@ -202,6 +204,12 @@ E exporta CSV/JSON com campos uteis para correlacao operacional:
 - `log_events`.
 
 Quando o `body-path` existe ou quando ha um ficheiro `data\<nome-do-header>.txt`, o relatorio le tambem o EDI associado. A extraccao EDI e conservadora nesta fase: guarda a linha `CAB`, conta linhas `DET`, detecta se existe `TOT`, lista codigos `PT...` e tenta identificar o primeiro nome plausivel no `CAB`.
+
+O relatorio classifica tambem excepcoes:
+
+- `ok`: sem anomalias detectadas;
+- `warning`: mensagem ainda nao processada, EDI sem linhas `DET` ou sem linha `TOT`;
+- `error`: EDI associado nao encontrado ou eventos de log com indicadores de erro/rejeicao, incluindo `cliente nao existe`.
 
 ## Questoes Pendentes
 
