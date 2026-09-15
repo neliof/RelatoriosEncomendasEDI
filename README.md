@@ -33,6 +33,8 @@ Para executar envio e relatorio Generix no mesmo ciclo:
 powershell.exe -ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\run-daily.ps1"
 ```
 
+Por defeito, o script mantem relatorios e logs dos ultimos 30 dias. A retencao pode ser alterada com `-RetentionDays 60` ou desligada com `-DisableCleanup`.
+
 ## Componentes
 
 - Configuracao em YAML.

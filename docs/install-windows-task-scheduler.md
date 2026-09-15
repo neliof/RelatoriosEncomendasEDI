@@ -28,6 +28,7 @@ O script:
 - executa `run-once --config config.yaml`;
 - executa `generix-report`;
 - grava transcript em `logs\run-daily-YYYYMMDD-HHMMSS.log`;
+- remove relatorios e logs com mais de 30 dias, salvo configuracao diferente;
 - devolve erro ao Task Scheduler se algum comando falhar.
 
 ## Agendamento
@@ -38,6 +39,27 @@ No Task Scheduler, criar uma tarefa com:
 - Arguments: `-ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\run-daily.ps1"`.
 - Start in: pasta raiz do projecto.
 - Trigger: horario operacional escolhido, por exemplo diario de manha.
+
+Frequencias comuns no separador Triggers, em Advanced settings:
+
+- `Repeat task every: 5 minutes`;
+- `Repeat task every: 10 minutes`;
+- `Repeat task every: 30 minutes`;
+- `Repeat task every: 1 hour`;
+- para X em X horas, escolher o intervalo pretendido;
+- para diario, deixar sem repeticao e escolher apenas a hora.
+
+Para alterar a retencao de relatorios/logs, acrescentar o parametro aos Arguments:
+
+```text
+-ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\run-daily.ps1" -RetentionDays 60
+```
+
+Para desligar a limpeza automatica:
+
+```text
+-ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\run-daily.ps1" -DisableCleanup
+```
 
 Se a password FTP estiver configurada por variavel de ambiente no `config.yaml`, confirmar que essa variavel existe no contexto do utilizador que executa a tarefa.
 

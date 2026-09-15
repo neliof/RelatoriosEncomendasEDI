@@ -4,7 +4,9 @@ param(
     [string]$GenerixStorageRoot = "C:\Users\TI\Documents\Influe-Generix\Bat\storage\cpip_20122611437260",
     [string]$ReportDir = "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\reports",
     [string]$LogDir = "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\logs",
-    [string]$PythonExe = ""
+    [string]$PythonExe = "",
+    [int]$RetentionDays = 30,
+    [switch]$DisableCleanup
 )
 
 $ErrorActionPreference = "Stop"
@@ -35,6 +37,12 @@ try {
     & $PythonExe -m integration_app.app generix-report --storage-root $GenerixStorageRoot --report-dir $ReportDir
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
+    }
+
+    if (-not $DisableCleanup) {
+        $Cutoff = (Get-Date).AddDays(-$RetentionDays)
+        Get-ChildItem -Path $ReportDir -File | Where-Object { $_.LastWriteTime -lt $Cutoff } | Remove-Item -Force
+        Get-ChildItem -Path $LogDir -File | Where-Object { $_.LastWriteTime -lt $Cutoff } | Remove-Item -Force
     }
 } finally {
     Set-Location $PreviousLocation
