@@ -25,6 +25,14 @@ O comando gera CSV e JSON com `unique-id`, assunto, origem, destino, estado `pro
 Tambem gera ficheiros `-exceptions.csv` e `-exceptions.json` apenas com registos sinalizados, e imprime no terminal os totais `Total`, `OK`, `Warnings` e `Errors`.
 O ficheiro Excel `.xlsx` inclui as folhas `Todas`, `Excepcoes` e `Resumo`, com filtros e realce visual dos avisos/erros.
 
+## Execucao Diaria
+
+Para executar envio e relatorio Generix no mesmo ciclo:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\run-daily.ps1"
+```
+
 ## Componentes
 
 - Configuracao em YAML.
