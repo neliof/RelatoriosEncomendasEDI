@@ -31,12 +31,14 @@ REPORT_COLUMNS = [
     "edi_numero_encomenda",
     "edi_numero_encomenda_conteudo",
     "edi_linhas_encomenda",
+    "edi_duplicate_key",
+    "edi_duplicate_status",
 ]
 
 
 def export_reports(store: SQLiteStore, report_dir: Path, run_id: str) -> list[Path]:
     report_dir.mkdir(parents=True, exist_ok=True)
-    rows = [_enrich_row(row) for row in store.report_rows()]
+    rows = _mark_duplicates([_enrich_row(row) for row in store.report_rows()])
     csv_path = report_dir / f"{run_id}.csv"
     json_path = report_dir / f"{run_id}.json"
     xlsx_path = report_dir / f"{run_id}.xlsx"
@@ -81,9 +83,37 @@ def _enrich_row(row: dict[str, object]) -> dict[str, object]:
             "edi_numero_encomenda": edi_record.numero_encomenda,
             "edi_numero_encomenda_conteudo": edi_record.numero_encomenda_conteudo,
             "edi_linhas_encomenda": edi_record.linhas_encomenda,
+            "edi_duplicate_key": _duplicate_key(edi_record),
+            "edi_duplicate_status": "unknown",
         }
     )
     return enriched
+
+
+def _mark_duplicates(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    seen: set[str] = set()
+    for row in rows:
+        duplicate_key = row.get("edi_duplicate_key")
+        if not duplicate_key:
+            row["edi_duplicate_status"] = "unknown"
+        elif duplicate_key in seen:
+            row["edi_duplicate_status"] = "duplicate"
+        else:
+            row["edi_duplicate_status"] = "unique"
+            seen.add(str(duplicate_key))
+    return rows
+
+
+def _duplicate_key(edi_record: OrderEdiRecord) -> str | None:
+    parts = [
+        edi_record.remetente_gln,
+        edi_record.fornecedor_gln,
+        edi_record.serie_encomenda,
+        edi_record.numero_encomenda,
+    ]
+    if any(part is None for part in parts):
+        return None
+    return "|".join(str(part) for part in parts)
 
 
 def _parse_order_edi_for_row(row: dict[str, object]) -> OrderEdiRecord:

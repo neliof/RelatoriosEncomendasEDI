@@ -72,3 +72,52 @@ D0000023045580             20260724
     assert "Entregafarm" in csv_text
     assert "BAYER" in csv_text
     assert "TER/F200/202600525" in csv_text
+
+
+def test_export_reports_marks_duplicate_order_edi_keys(tmp_path: Path):
+    store = SQLiteStore(tmp_path / "integration.db")
+    store.initialize()
+    source = tmp_path / "send"
+    sent = source / "Enviados"
+    sent.mkdir(parents=True)
+    connection = ConnectionConfig(
+        name="lab",
+        enabled=True,
+        flow_type="generic",
+        protocol="ftp",
+        host="ftp.example.test",
+        port=21,
+        username="user",
+        source_dir=source,
+        remote_dir="/inbound",
+        file_pattern="*.txt",
+    )
+    duplicate_names = [
+        "Pedido_EDI_Entregafarm_BAYER_F200-202600525.txt",
+        "Pedido_EDI_Entregafarm_BAYER_F200-202600525_copia.txt",
+    ]
+    for file_name in duplicate_names:
+        (sent / file_name).write_text(
+            """HPEDIDO0001               PT5106785059125042
+C   PT500043256                                                                                                                    2026072400010050         0001                                                                                          TER/F200/202600525
+D0000015273289             20260724
+""",
+            encoding="utf-8",
+        )
+        event_id = store.record_detected(connection, source / file_name, "/inbound/" + file_name)
+        instant = datetime(2026, 9, 14, 10, 0, tzinfo=UTC)
+        store.record_transfer_result(event_id, "sent", instant, instant, None)
+        store.record_confirmation(event_id, "confirmed", instant)
+    unknown_id = store.record_detected(connection, source / "manual.txt", "/inbound/manual.txt")
+    instant = datetime(2026, 9, 14, 10, 1, tzinfo=UTC)
+    store.record_transfer_result(unknown_id, "sent", instant, instant, None)
+
+    export_reports(store, tmp_path / "reports", "run-duplicates")
+
+    rows = (tmp_path / "reports" / "run-duplicates.csv").read_text(encoding="utf-8").splitlines()
+    assert "edi_duplicate_key" in rows[0]
+    assert "edi_duplicate_status" in rows[0]
+    assert "PT5106785059125042|PT500043256|F200|202600525" in rows[1]
+    assert "unique" in rows[1]
+    assert "duplicate" in rows[2]
+    assert "unknown" in rows[3]

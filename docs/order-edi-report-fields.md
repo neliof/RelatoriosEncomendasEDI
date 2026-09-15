@@ -26,5 +26,23 @@ C:\Edi\Send\Enviados\Pedido_EDI_Entregafarm_BAYER_F200-202600525.txt
 - `edi_numero_encomenda`
 - `edi_numero_encomenda_conteudo`
 - `edi_linhas_encomenda`
+- `edi_duplicate_key`
+- `edi_duplicate_status`
 
 Se o ficheiro ja tiver sido movido, o relatorio tenta ler o ficheiro em `Enviados` quando o estado e `sent`, ou em `Erros` quando o estado e `failed`.
+
+## Controlo de Duplicados
+
+A Fase 1 do controlo de duplicados marca o relatorio sem bloquear envios.
+
+A chave usada e:
+
+```text
+edi_remetente_gln|edi_fornecedor_gln|edi_serie_encomenda|edi_numero_encomenda
+```
+
+Estados possiveis:
+
+- `unique`: primeira ocorrencia encontrada no historico do relatorio;
+- `duplicate`: ja existia uma ocorrencia anterior com a mesma chave;
+- `unknown`: faltam campos para formar a chave.
