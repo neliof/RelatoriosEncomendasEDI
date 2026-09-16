@@ -8,12 +8,30 @@ const state = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+  setupTabs();
   document.getElementById("refresh-button").addEventListener("click", refreshAll);
   document.getElementById("event-filters").addEventListener("input", fetchEvents);
   document.getElementById("clear-filters-button").addEventListener("click", clearEventFilters);
   document.getElementById("event-detail-close").addEventListener("click", hideEventDetail);
   refreshAll();
 });
+
+function setupTabs() {
+  for (const tab of document.querySelectorAll("[data-view]")) {
+    tab.addEventListener("click", () => showView(tab.dataset.view));
+  }
+}
+
+function showView(viewName) {
+  for (const view of document.querySelectorAll(".view")) {
+    view.hidden = view.id !== `view-${viewName}`;
+  }
+  for (const tab of document.querySelectorAll("[data-view]")) {
+    const active = tab.dataset.view === viewName;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+  }
+}
 
 async function refreshAll() {
   await Promise.all([fetchSummary(), fetchEvents(), fetchConnections(), fetchConfigSummary(), fetchSuppliers(), fetchReports()]);

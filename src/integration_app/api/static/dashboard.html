@@ -16,79 +16,92 @@
         <button id="refresh-button" type="button">Actualizar</button>
       </header>
 
-      <section class="metrics" aria-label="Resumo operacional">
-        <article class="metric-card"><span>Total</span><strong id="metric-total">-</strong></article>
-        <article class="metric-card"><span>Enviados</span><strong id="metric-sent">-</strong></article>
-        <article class="metric-card"><span>Confirmados</span><strong id="metric-confirmed">-</strong></article>
-        <article class="metric-card"><span>Pendentes</span><strong id="metric-pending">-</strong></article>
-        <article class="metric-card"><span>Duplicados</span><strong id="metric-duplicate">-</strong></article>
-        <article class="metric-card"><span>Falhados</span><strong id="metric-failed">-</strong></article>
-      </section>
-      <section id="operational-alerts" class="alerts" aria-live="polite" hidden></section>
+      <nav class="tabs" aria-label="Navegacao principal">
+        <button id="tab-overview" class="tab active" type="button" data-view="overview">Resumo</button>
+        <button id="tab-reports" class="tab" type="button" data-view="reports">Relatorios</button>
+        <button id="tab-config" class="tab" type="button" data-view="config">Configuracoes</button>
+      </nav>
 
-      <section class="panel">
-        <h2>Ligacoes</h2>
-        <p id="connections-error" class="notice" hidden></p>
-        <div id="connections-list" class="connection-list"></div>
+      <section id="view-overview" class="view">
+        <section class="metrics" aria-label="Resumo operacional">
+          <article class="metric-card"><span>Total</span><strong id="metric-total">-</strong></article>
+          <article class="metric-card"><span>Enviados</span><strong id="metric-sent">-</strong></article>
+          <article class="metric-card"><span>Confirmados</span><strong id="metric-confirmed">-</strong></article>
+          <article class="metric-card"><span>Pendentes</span><strong id="metric-pending">-</strong></article>
+          <article class="metric-card"><span>Duplicados</span><strong id="metric-duplicate">-</strong></article>
+          <article class="metric-card"><span>Falhados</span><strong id="metric-failed">-</strong></article>
+        </section>
+        <section id="operational-alerts" class="alerts" aria-live="polite" hidden></section>
+
+        <section class="panel">
+          <h2>Ligacoes</h2>
+          <p id="connections-error" class="notice" hidden></p>
+          <div id="connections-list" class="connection-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-header">
+            <h2>Eventos recentes</h2>
+            <form id="event-filters" class="filters">
+              <select id="status-filter" aria-label="Estado">
+                <option value="">Todos</option>
+                <option value="sent">Enviados</option>
+                <option value="confirmed">Confirmados</option>
+                <option value="duplicate">Duplicados</option>
+                <option value="failed">Falhados</option>
+                <option value="detected">Detectados</option>
+              </select>
+              <input id="connection-filter" type="search" placeholder="Ligacao" aria-label="Ligacao">
+              <input id="date-from-filter" type="date" aria-label="Data inicial">
+              <input id="date-to-filter" type="date" aria-label="Data final">
+              <input id="limit-filter" type="number" min="1" max="500" value="100" aria-label="Limite">
+              <button id="clear-filters-button" type="button">Limpar filtros</button>
+            </form>
+          </div>
+          <p id="events-error" class="notice" hidden></p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Ligacao</th>
+                  <th>Fornecedor</th>
+                  <th>Encomenda</th>
+                  <th>Protocolo</th>
+                  <th>Estado</th>
+                  <th>Confirmacao</th>
+                  <th>Ficheiro</th>
+                  <th>Erro</th>
+                  <th>Acao</th>
+                </tr>
+              </thead>
+              <tbody id="events-body"></tbody>
+            </table>
+          </div>
+        </section>
       </section>
 
-      <section class="panel">
-        <div class="panel-header">
-          <h2>Eventos recentes</h2>
-          <form id="event-filters" class="filters">
-            <select id="status-filter" aria-label="Estado">
-              <option value="">Todos</option>
-              <option value="sent">Enviados</option>
-              <option value="confirmed">Confirmados</option>
-              <option value="duplicate">Duplicados</option>
-              <option value="failed">Falhados</option>
-              <option value="detected">Detectados</option>
-            </select>
-            <input id="connection-filter" type="search" placeholder="Ligacao" aria-label="Ligacao">
-            <input id="date-from-filter" type="date" aria-label="Data inicial">
-            <input id="date-to-filter" type="date" aria-label="Data final">
-            <input id="limit-filter" type="number" min="1" max="500" value="100" aria-label="Limite">
-            <button id="clear-filters-button" type="button">Limpar filtros</button>
-          </form>
-        </div>
-        <p id="events-error" class="notice" hidden></p>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Ligacao</th>
-                <th>Fornecedor</th>
-                <th>Encomenda</th>
-                <th>Protocolo</th>
-                <th>Estado</th>
-                <th>Confirmacao</th>
-                <th>Ficheiro</th>
-                <th>Erro</th>
-                <th>Acao</th>
-              </tr>
-            </thead>
-            <tbody id="events-body"></tbody>
-          </table>
-        </div>
+      <section id="view-reports" class="view" hidden>
+        <section class="grid">
+          <article class="panel">
+            <h2>Fornecedores</h2>
+            <p id="suppliers-error" class="notice" hidden></p>
+            <div id="suppliers-list" class="list"></div>
+          </article>
+          <article class="panel">
+            <h2>Relatorios</h2>
+            <p id="reports-error" class="notice" hidden></p>
+            <div id="reports-list" class="list"></div>
+          </article>
+        </section>
       </section>
 
-      <section class="grid">
-        <article class="panel">
+      <section id="view-config" class="view" hidden>
+        <section class="panel config-panel">
           <h2>Configuracao</h2>
           <p id="config-error" class="notice" hidden></p>
           <div id="config-list" class="list"></div>
-        </article>
-        <article class="panel">
-          <h2>Fornecedores</h2>
-          <p id="suppliers-error" class="notice" hidden></p>
-          <div id="suppliers-list" class="list"></div>
-        </article>
-        <article class="panel">
-          <h2>Relatorios</h2>
-          <p id="reports-error" class="notice" hidden></p>
-          <div id="reports-list" class="list"></div>
-        </article>
+        </section>
       </section>
     </main>
     <aside id="event-detail" class="detail-panel" hidden>

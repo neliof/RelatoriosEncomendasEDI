@@ -320,6 +320,12 @@ def test_dashboard_html_contains_required_dom_hooks(tmp_path: Path):
     required_ids = [
         "last-updated",
         "refresh-button",
+        "tab-overview",
+        "tab-reports",
+        "tab-config",
+        "view-overview",
+        "view-reports",
+        "view-config",
         "metric-total",
         "metric-sent",
         "metric-confirmed",
@@ -347,6 +353,9 @@ def test_dashboard_html_contains_required_dom_hooks(tmp_path: Path):
         assert f'id="{element_id}"' in html
     assert "<th>Fornecedor</th>" in html
     assert "<th>Encomenda</th>" in html
+    assert 'data-view="overview"' in html
+    assert 'data-view="reports"' in html
+    assert 'data-view="config"' in html
 
 
 def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
@@ -374,6 +383,9 @@ def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
     assert "fetchConnections" in javascript
     assert "filterEventsByConnection" in javascript
     assert "fetchConfigSummary()" in javascript
+    assert "setupTabs" in javascript
+    assert "showView" in javascript
+    assert "`view-${viewName}`" in javascript
     assert "toggleConnectionEnabled" in javascript
     assert "saveConnectionSettings" in javascript
     assert "collectConnectionSettings" in javascript
@@ -408,6 +420,8 @@ def test_dashboard_assets_include_operational_alert_styles(tmp_path: Path):
     assert ".config-field" in css
     assert ".config-message" in css
     assert ".config-message.success" in css
+    assert ".tabs" in css
+    assert ".view[hidden]" in css
     assert ".event-row.duplicate" in css
     assert ".event-row.pending" in css
     assert "renderOperationalAlerts" in javascript

@@ -76,6 +76,31 @@ button {
   cursor: pointer;
 }
 
+.tabs {
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.tab {
+  background: transparent;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: 0;
+  color: var(--muted);
+  min-height: 42px;
+}
+
+.tab.active {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+.view[hidden] {
+  display: none;
+}
+
 .metrics {
   display: grid;
   grid-template-columns: repeat(6, minmax(120px, 1fr));
@@ -256,6 +281,10 @@ th {
   justify-self: end;
 }
 
+.config-panel {
+  max-width: none;
+}
+
 .config-row {
   align-items: start;
 }
@@ -423,6 +452,10 @@ a,
   .filters {
     display: grid;
     grid-template-columns: 1fr;
+  }
+
+  .tabs {
+    overflow-x: auto;
   }
 
   .config-form {
