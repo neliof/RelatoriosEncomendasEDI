@@ -105,3 +105,62 @@ def test_gitignore_excludes_local_secrets():
     content = gitignore.read_text(encoding="utf-8")
 
     assert "secrets/" in content
+
+
+def test_daily_script_reads_dpapi_secret_with_file_newline(tmp_path: Path):
+    project_root = tmp_path / "project"
+    log_dir = tmp_path / "logs"
+    report_dir = tmp_path / "reports"
+    secret_dir = tmp_path / "secrets"
+    fake_python = tmp_path / "python.cmd"
+    project_root.mkdir()
+    secret_dir.mkdir()
+    fake_python.write_text("@echo off\r\nexit /b 0\r\n", encoding="utf-8")
+
+    secret_path = secret_dir / "PRIMEIRA_LIGACAO_FTP_PASSWORD.secret"
+    create_secret = subprocess.run(
+        [
+            "powershell.exe",
+            "-NoProfile",
+            "-Command",
+            (
+                "$s = ConvertTo-SecureString 'secret' -AsPlainText -Force; "
+                f"$s | ConvertFrom-SecureString | Set-Content -Path '{secret_path}' -Encoding UTF8"
+            ),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert create_secret.returncode == 0
+
+    result = subprocess.run(
+        [
+            "powershell.exe",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            "scripts/run-daily.ps1",
+            "-ProjectRoot",
+            str(project_root),
+            "-ConfigPath",
+            str(tmp_path / "config.yaml"),
+            "-GenerixStorageRoot",
+            str(tmp_path / "storage"),
+            "-ReportDir",
+            str(report_dir),
+            "-LogDir",
+            str(log_dir),
+            "-SecretDir",
+            str(secret_dir),
+            "-PythonExe",
+            str(fake_python),
+            "-DisableCleanup",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr

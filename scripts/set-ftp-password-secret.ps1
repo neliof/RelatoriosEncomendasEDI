@@ -22,7 +22,7 @@ $securePassword = Read-Host -Prompt "Password FTP" -AsSecureString
 
 try {
     New-Item -ItemType Directory -Force -Path $SecretDir | Out-Null
-    $securePassword | ConvertFrom-SecureString | Set-Content -Path $SecretPath -Encoding UTF8
+    $securePassword | ConvertFrom-SecureString | Set-Content -Path $SecretPath -Encoding UTF8 -NoNewline
     Write-Output "Password secret stored for the current Windows user."
     Write-Output "The scheduled script can now load it without a permanent environment variable."
 }

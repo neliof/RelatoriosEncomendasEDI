@@ -25,9 +25,11 @@ try {
     $PasswordEnvName = "PRIMEIRA_LIGACAO_FTP_PASSWORD"
     $SecretPath = Join-Path $SecretDir "$PasswordEnvName.secret"
     if (-not (Get-Item -Path "Env:$PasswordEnvName" -ErrorAction SilentlyContinue) -and (Test-Path -LiteralPath $SecretPath)) {
-        $securePassword = Get-Content -Path $SecretPath -Raw | ConvertTo-SecureString
+        $encryptedPassword = (Get-Content -Path $SecretPath -Raw).Trim()
+        $securePassword = $encryptedPassword | ConvertTo-SecureString
         $plainPassword = [System.Net.NetworkCredential]::new("", $securePassword).Password
         Set-Item -Path "Env:$PasswordEnvName" -Value $plainPassword
+        $encryptedPassword = $null
         $plainPassword = $null
         $securePassword.Dispose()
     }
