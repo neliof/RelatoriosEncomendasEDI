@@ -25,6 +25,24 @@ O comando gera CSV e JSON com `unique-id`, assunto, origem, destino, estado `pro
 Tambem gera ficheiros `-exceptions.csv` e `-exceptions.json` apenas com registos sinalizados, e imprime no terminal os totais `Total`, `OK`, `Warnings` e `Errors`.
 O ficheiro Excel `.xlsx` inclui as folhas `Todas`, `Excepcoes` e `Resumo`, com filtros e realce visual dos avisos/erros.
 
+## API Local de Monitorizacao
+
+Para consultar eventos, resumos, fornecedores e relatorios por HTTP local:
+
+```powershell
+python -m integration_app.api --db data/integration.db --reports reports
+```
+
+Endpoints principais:
+
+- `http://127.0.0.1:8000/health`
+- `http://127.0.0.1:8000/summary`
+- `http://127.0.0.1:8000/events`
+- `http://127.0.0.1:8000/suppliers`
+- `http://127.0.0.1:8000/reports`
+
+A API e apenas de leitura nesta fase.
+
 ## Execucao Diaria
 
 Para executar envio e relatorio Generix no mesmo ciclo:
