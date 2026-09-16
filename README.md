@@ -33,6 +33,14 @@ Para consultar eventos, resumos, fornecedores e relatorios por HTTP local:
 python -m integration_app.api --db data/integration.db --reports reports
 ```
 
+Depois de arrancar, abrir o dashboard no browser:
+
+```text
+http://127.0.0.1:8000/
+```
+
+O dashboard mostra resumo operacional, eventos recentes, fornecedores e relatorios gerados. Continua a ser apenas de leitura.
+
 Endpoints principais:
 
 - `http://127.0.0.1:8000/health`
