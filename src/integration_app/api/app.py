@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
-from fastapi import Body, FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from integration_app.api.config_management import ConfigUpdateError, update_connection_config
+from integration_app.api.config_management import ConfigUpdateError, add_connection_config, update_connection_config
 from integration_app.api.read_models import (
     EventFilters,
     fetch_connections,
@@ -78,6 +79,17 @@ def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config
         except ConfigUpdateError as exc:
             raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
+    @app.post("/config/connections")
+    def create_config_connection(
+        connection: dict[str, object] = Body(...),
+        x_admin_password: str | None = Header(default=None),
+    ) -> dict[str, object]:
+        _require_admin_password(x_admin_password)
+        try:
+            return add_connection_config(config_path, connection)
+        except ConfigUpdateError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
     @app.get("/suppliers")
     def suppliers() -> dict[str, object]:
         return {"items": fetch_suppliers(db_path)}
@@ -95,3 +107,11 @@ def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config
         return FileResponse(candidate, filename=candidate.name)
 
     return app
+
+
+def _require_admin_password(provided_password: str | None) -> None:
+    expected_password = os.environ.get("INTEGRATION_ADMIN_PASSWORD")
+    if not expected_password:
+        raise HTTPException(status_code=403, detail="Admin password is not configured")
+    if provided_password != expected_password:
+        raise HTTPException(status_code=401, detail="Invalid admin password")

@@ -285,6 +285,14 @@ th {
   max-width: none;
 }
 
+.new-connection {
+  margin-bottom: 16px;
+}
+
+.new-connection .config-form {
+  grid-template-columns: repeat(4, minmax(140px, 1fr));
+}
+
 .config-row {
   align-items: start;
 }
@@ -459,6 +467,10 @@ a,
   }
 
   .config-form {
+    grid-template-columns: 1fr;
+  }
+
+  .new-connection .config-form {
     grid-template-columns: 1fr;
   }
 }

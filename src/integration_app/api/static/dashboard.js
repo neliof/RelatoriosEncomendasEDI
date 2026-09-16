@@ -12,6 +12,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("refresh-button").addEventListener("click", refreshAll);
   document.getElementById("event-filters").addEventListener("input", fetchEvents);
   document.getElementById("clear-filters-button").addEventListener("click", clearEventFilters);
+  document.getElementById("new-connection-form").addEventListener("submit", saveNewConnection);
   document.getElementById("event-detail-close").addEventListener("click", hideEventDetail);
   refreshAll();
 });
@@ -221,6 +222,72 @@ function findConfigForm(connectionName) {
   return null;
 }
 
+async function saveNewConnection(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const { adminPassword, connection } = collectNewConnection(form);
+  const validationError = validateNewConnection(connection, adminPassword);
+  if (validationError) {
+    showConfigMessage(form, validationError, "error");
+    return;
+  }
+  try {
+    button.disabled = true;
+    button.textContent = "A criar...";
+    await postJson("/config/connections", connection, adminPassword);
+    form.reset();
+    form.querySelector('[name="port"]').value = connection.protocol === "sftp" ? "22" : "21";
+    form.querySelector('[name="file_pattern"]').value = "*";
+    form.querySelector('[name="confirm_remote_processing"]').checked = true;
+    await fetchConfigSummary();
+    showConfigMessage(form, "Ligacao criada. Backup criado.", "success");
+  } catch (error) {
+    showConfigMessage(form, `Erro ao criar: ${error.message}`, "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Criar ligacao";
+  }
+}
+
+function collectNewConnection(form) {
+  const data = new FormData(form);
+  const passwordEnv = String(data.get("password_env") || "").trim();
+  const connection = {
+    name: String(data.get("name") || "").trim(),
+    enabled: true,
+    flow_type: "generic",
+    protocol: String(data.get("protocol") || "").trim(),
+    host: String(data.get("host") || "").trim(),
+    port: Number(data.get("port") || 0),
+    username: String(data.get("username") || "").trim(),
+    source_dir: String(data.get("source_dir") || "").trim(),
+    remote_dir: String(data.get("remote_dir") || "").trim(),
+    file_pattern: String(data.get("file_pattern") || "").trim(),
+    sent_dir: "Enviados",
+    error_dir: "Erros",
+    duplicate_policy: String(data.get("duplicate_policy") || "").trim(),
+    confirm_remote_processing: data.has("confirm_remote_processing"),
+  };
+  if (passwordEnv) {
+    connection.password_env = passwordEnv;
+  }
+  return {
+    adminPassword: String(data.get("admin_password") || ""),
+    connection,
+  };
+}
+
+function validateNewConnection(connection, adminPassword) {
+  if (!adminPassword) return "Password admin obrigatoria.";
+  if (!connection.name || !connection.host || !connection.username) return "Nome, host e utilizador sao obrigatorios.";
+  if (!connection.source_dir || !connection.remote_dir || !connection.file_pattern) return "Origem, destino e padrao sao obrigatorios.";
+  if (!["ftp", "sftp"].includes(connection.protocol)) return "Protocolo invalido.";
+  if (!Number.isInteger(connection.port) || connection.port <= 0) return "Porta invalida.";
+  if (!["report_only", "move_to_duplicates"].includes(connection.duplicate_policy)) return "Politica de duplicados invalida.";
+  return "";
+}
+
 async function fetchConnections() {
   try {
     hideError("connections-error");
@@ -291,6 +358,21 @@ async function patchJson(url, payload) {
   const response = await fetch(url, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+async function postJson(url, payload, adminPassword) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Admin-Password": adminPassword,
+    },
     body: JSON.stringify(payload),
   });
   if (!response.ok) {

@@ -20,6 +20,34 @@ ALLOWED_FIELDS = {
     "confirm_remote_processing",
 }
 
+CREATE_REQUIRED_FIELDS = {
+    "name",
+    "protocol",
+    "host",
+    "port",
+    "username",
+    "source_dir",
+    "remote_dir",
+}
+
+CREATE_ALLOWED_FIELDS = {
+    "name",
+    "enabled",
+    "flow_type",
+    "protocol",
+    "host",
+    "port",
+    "username",
+    "password_env",
+    "source_dir",
+    "remote_dir",
+    "file_pattern",
+    "sent_dir",
+    "error_dir",
+    "duplicate_policy",
+    "confirm_remote_processing",
+}
+
 BLOCKED_FIELDS = {
     "password_env",
     "private_key_path",
@@ -70,6 +98,29 @@ def update_connection_config(
     }
 
 
+def add_connection_config(config_path: Path, connection: dict[str, object]) -> dict[str, object]:
+    config_path = Path(config_path)
+    if not config_path.exists():
+        raise ConfigUpdateError("Configuration file not found", status_code=404)
+
+    _validate_create_fields(connection)
+    config = _load_yaml(config_path)
+    connections = config.get("connections")
+    if not isinstance(connections, list):
+        raise ConfigUpdateError("connections must be a list", status_code=400)
+    connection_name = str(connection["name"])
+    if any(isinstance(item, dict) and item.get("name") == connection_name for item in connections):
+        raise ConfigUpdateError("Connection already exists", status_code=409)
+
+    connections.append(_connection_defaults(connection))
+    backup_path = _write_validated_config(config_path, config)
+    return {
+        "connection_name": connection_name,
+        "created": True,
+        "backup_path": str(backup_path),
+    }
+
+
 def _reject_unsupported_fields(updates: dict[str, object]) -> None:
     blocked = BLOCKED_FIELDS.intersection(updates)
     if blocked:
@@ -79,6 +130,43 @@ def _reject_unsupported_fields(updates: dict[str, object]) -> None:
     if unknown:
         field = sorted(unknown)[0]
         raise ConfigUpdateError(f"Unknown field: {field}", status_code=400)
+
+
+def _validate_create_fields(connection: dict[str, object]) -> None:
+    unknown = set(connection).difference(CREATE_ALLOWED_FIELDS)
+    if unknown:
+        raise ConfigUpdateError(f"Unknown field: {sorted(unknown)[0]}", status_code=400)
+
+    missing = [field for field in sorted(CREATE_REQUIRED_FIELDS) if field not in connection]
+    if missing:
+        raise ConfigUpdateError(f"Missing field: {missing[0]}", status_code=400)
+
+
+def _connection_defaults(connection: dict[str, object]) -> dict[str, object]:
+    created = dict(connection)
+    created.setdefault("enabled", True)
+    created.setdefault("flow_type", "generic")
+    created.setdefault("file_pattern", "*")
+    created.setdefault("sent_dir", "Enviados")
+    created.setdefault("error_dir", "Erros")
+    created.setdefault("duplicate_policy", "report_only")
+    created.setdefault("confirm_remote_processing", True)
+    return created
+
+
+def _write_validated_config(config_path: Path, config: dict[str, object]) -> Path:
+    tmp_path = _candidate_path(config_path)
+    try:
+        tmp_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+        load_config(tmp_path)
+        backup_path = _backup_config(config_path)
+        os.replace(tmp_path, config_path)
+    except Exception as exc:
+        tmp_path.unlink(missing_ok=True)
+        if isinstance(exc, ConfigUpdateError):
+            raise
+        raise ConfigUpdateError("Invalid configuration update", status_code=400) from exc
+    return backup_path
 
 
 def _load_yaml(config_path: Path) -> dict[str, object]:

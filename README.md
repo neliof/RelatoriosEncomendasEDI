@@ -43,6 +43,8 @@ O dashboard mostra resumo operacional, eventos recentes, fornecedores e relatori
 
 Na seccao `Configuracao`, permite activar/desactivar ligacoes existentes. Antes de alterar `config.yaml`, a aplicacao cria backup em `config.backups/`, valida a configuracao resultante e rejeita campos sensiveis como passwords, host, username, port e protocolo.
 
+Para criar novas ligacoes a partir do dashboard, arrancar a API com a variavel `INTEGRATION_ADMIN_PASSWORD` definida. Essa password e pedida no formulario apenas para confirmar a operacao de administrador; nao e gravada no `config.yaml`.
+
 Endpoints principais:
 
 - `http://127.0.0.1:8000/health`

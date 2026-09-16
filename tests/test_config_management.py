@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from integration_app.api.config_management import ConfigUpdateError, update_connection_config
+from integration_app.api.config_management import ConfigUpdateError, add_connection_config, update_connection_config
 
 
 def test_update_connection_config_creates_backup_and_updates_allowed_fields(tmp_path: Path):
@@ -74,6 +74,60 @@ def test_update_connection_config_keeps_original_when_validation_fails(tmp_path:
             {"duplicate_policy": "invalid_policy"},
         )
 
+    assert config_path.read_text(encoding="utf-8") == original_text
+
+
+def test_add_connection_config_creates_backup_and_adds_valid_connection(tmp_path: Path):
+    config_path = _write_config(tmp_path)
+
+    result = add_connection_config(
+        config_path,
+        {
+            "name": "nova_ligacao",
+            "enabled": True,
+            "flow_type": "generic",
+            "protocol": "ftp",
+            "host": "ftp.example.test",
+            "port": 21,
+            "username": "ftp_user",
+            "password_env": "NOVA_PASSWORD",
+            "source_dir": "./send",
+            "remote_dir": "/inbound",
+            "file_pattern": "*.txt",
+            "sent_dir": "Enviados",
+            "error_dir": "Erros",
+            "duplicate_policy": "report_only",
+            "confirm_remote_processing": True,
+        },
+    )
+
+    assert result["connection_name"] == "nova_ligacao"
+    assert result["created"] is True
+    backups = list((tmp_path / "config.backups").glob("config-*.yaml"))
+    assert len(backups) == 1
+    updated = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    assert [item["name"] for item in updated["connections"]] == ["laboratorio_x", "nova_ligacao"]
+
+
+def test_add_connection_config_rejects_duplicate_name_without_changing_file(tmp_path: Path):
+    config_path = _write_config(tmp_path)
+    original_text = config_path.read_text(encoding="utf-8")
+
+    with pytest.raises(ConfigUpdateError) as exc_info:
+        add_connection_config(
+            config_path,
+            {
+                "name": "laboratorio_x",
+                "protocol": "ftp",
+                "host": "ftp.example.test",
+                "port": 21,
+                "username": "ftp_user",
+                "source_dir": "./send",
+                "remote_dir": "/inbound",
+            },
+        )
+
+    assert exc_info.value.status_code == 409
     assert config_path.read_text(encoding="utf-8") == original_text
 
 

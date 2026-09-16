@@ -97,6 +97,38 @@
       </section>
 
       <section id="view-config" class="view" hidden>
+        <section class="panel new-connection">
+          <h2>Nova ligacao</h2>
+          <form id="new-connection-form" class="config-form">
+            <label class="config-field">Nome <input name="name" required></label>
+            <label class="config-field">Protocolo
+              <select name="protocol">
+                <option value="ftp">FTP</option>
+                <option value="sftp">SFTP</option>
+              </select>
+            </label>
+            <label class="config-field">Host <input name="host" required></label>
+            <label class="config-field">Porta <input name="port" type="number" min="1" value="21" required></label>
+            <label class="config-field">Utilizador <input name="username" required></label>
+            <label class="config-field">Variavel password <input name="password_env" placeholder="NOME_DA_PASSWORD"></label>
+            <label class="config-field">Origem <input name="source_dir" required></label>
+            <label class="config-field">Destino <input name="remote_dir" required></label>
+            <label class="config-field">Padrao <input name="file_pattern" value="*" required></label>
+            <label class="config-field">Duplicados
+              <select name="duplicate_policy">
+                <option value="report_only">Reportar</option>
+                <option value="move_to_duplicates">Mover</option>
+              </select>
+            </label>
+            <label class="config-field config-checkbox">
+              <input name="confirm_remote_processing" type="checkbox" checked>
+              Confirmar processamento remoto
+            </label>
+            <label class="config-field">Password admin <input name="admin_password" type="password" autocomplete="current-password" required></label>
+            <button type="submit">Criar ligacao</button>
+            <span id="new-connection-message" class="config-message" aria-live="polite"></span>
+          </form>
+        </section>
         <section class="panel config-panel">
           <h2>Configuracao</h2>
           <p id="config-error" class="notice" hidden></p>

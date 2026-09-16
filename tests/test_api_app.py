@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
+import pytest
 from fastapi.testclient import TestClient
 
 from integration_app.api.app import create_app
@@ -237,6 +238,40 @@ def test_patch_config_connection_rejects_sensitive_fields(tmp_path: Path):
     assert response.status_code == 400
 
 
+def test_post_config_connection_requires_admin_password(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("INTEGRATION_ADMIN_PASSWORD", "admin-secret")
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    config_path = _write_config(tmp_path)
+    app = create_app(db_path, tmp_path / "reports", config_path=config_path)
+
+    response = TestClient(app).post(
+        "/config/connections",
+        json=_new_connection_payload(),
+    )
+
+    assert response.status_code == 401
+
+
+def test_post_config_connection_creates_connection_with_admin_password(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("INTEGRATION_ADMIN_PASSWORD", "admin-secret")
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    config_path = _write_config(tmp_path)
+    app = create_app(db_path, tmp_path / "reports", config_path=config_path)
+
+    response = TestClient(app).post(
+        "/config/connections",
+        json=_new_connection_payload(),
+        headers={"X-Admin-Password": "admin-secret"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["created"] is True
+    updated = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    assert [item["name"] for item in updated["connections"]] == ["laboratorio_x", "nova_ligacao"]
+
+
 def test_reports_endpoint_lists_files(tmp_path: Path):
     db_path = tmp_path / "integration.db"
     SQLiteStore(db_path).initialize()
@@ -342,6 +377,8 @@ def test_dashboard_html_contains_required_dom_hooks(tmp_path: Path):
         "operational-alerts",
         "connections-list",
         "config-list",
+        "new-connection-form",
+        "new-connection-message",
         "events-body",
         "event-detail",
         "event-detail-body",
@@ -388,6 +425,10 @@ def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
     assert "`view-${viewName}`" in javascript
     assert "toggleConnectionEnabled" in javascript
     assert "saveConnectionSettings" in javascript
+    assert "saveNewConnection" in javascript
+    assert "collectNewConnection" in javascript
+    assert "postJson" in javascript
+    assert "X-Admin-Password" in javascript
     assert "collectConnectionSettings" in javascript
     assert "validateConnectionSettings" in javascript
     assert "showConfigMessage" in javascript
@@ -420,6 +461,7 @@ def test_dashboard_assets_include_operational_alert_styles(tmp_path: Path):
     assert ".config-field" in css
     assert ".config-message" in css
     assert ".config-message.success" in css
+    assert ".new-connection" in css
     assert ".tabs" in css
     assert ".view[hidden]" in css
     assert ".event-row.duplicate" in css
@@ -459,3 +501,23 @@ connections:
         encoding="utf-8",
     )
     return config_path
+
+
+def _new_connection_payload() -> dict[str, object]:
+    return {
+        "name": "nova_ligacao",
+        "enabled": True,
+        "flow_type": "generic",
+        "protocol": "ftp",
+        "host": "ftp.example.test",
+        "port": 21,
+        "username": "ftp_user",
+        "password_env": "NOVA_PASSWORD",
+        "source_dir": "./send",
+        "remote_dir": "/inbound",
+        "file_pattern": "*.txt",
+        "sent_dir": "Enviados",
+        "error_dir": "Erros",
+        "duplicate_policy": "report_only",
+        "confirm_remote_processing": True,
+    }
