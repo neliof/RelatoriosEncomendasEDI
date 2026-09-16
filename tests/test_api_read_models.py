@@ -1,7 +1,14 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
-from integration_app.api.read_models import EventFilters, fetch_events, fetch_summary, fetch_suppliers, list_reports
+from integration_app.api.read_models import (
+    EventFilters,
+    fetch_event_detail,
+    fetch_events,
+    fetch_summary,
+    fetch_suppliers,
+    list_reports,
+)
 from integration_app.models import ConnectionConfig
 from integration_app.storage.sqlite_store import SQLiteStore
 
@@ -64,8 +71,44 @@ def test_fetch_events_filters_by_status_connection_and_date(tmp_path: Path):
 
     assert len(rows) == 1
     assert rows[0]["connection_name"] == "edi"
+    assert rows[0]["id"] == event_id
     assert rows[0]["status"] == "failed"
     assert rows[0]["error_message"] == "Boom"
+
+
+def test_fetch_event_detail_returns_enriched_order_fields(tmp_path: Path):
+    store = SQLiteStore(tmp_path / "integration.db")
+    store.initialize()
+    source = tmp_path / "send"
+    sent = source / "Enviados"
+    sent.mkdir(parents=True)
+    connection = _connection(source, "edi")
+    file_name = "Pedido_EDI_Entregafarm_BAYER_F200-202600525.txt"
+    (sent / file_name).write_text(
+        "HPEDIDO0001               PT5106785059125042\n"
+        "C   PT500043256                                                                                                                    2026072400010050         0001                                                                                          TER/F200/202600525\n"
+        "D0000015273289             20260724\n",
+        encoding="utf-8",
+    )
+    instant = datetime(2026, 9, 16, 10, 0, tzinfo=UTC)
+    event_id = store.record_detected(connection, source / file_name, "/inbound/" + file_name)
+    store.record_transfer_result(event_id, "sent", instant, instant, None)
+
+    detail = fetch_event_detail(tmp_path / "integration.db", event_id)
+
+    assert detail is not None
+    assert detail["id"] == event_id
+    assert detail["connection_name"] == "edi"
+    assert detail["edi_fornecedor_nome"] == "BAYER"
+    assert detail["edi_numero_encomenda"] == "202600525"
+    assert detail["edi_duplicate_key"]
+
+
+def test_fetch_event_detail_returns_none_for_unknown_id(tmp_path: Path):
+    store = SQLiteStore(tmp_path / "integration.db")
+    store.initialize()
+
+    assert fetch_event_detail(tmp_path / "integration.db", 999) is None
 
 
 def test_list_reports_classifies_report_files(tmp_path: Path):

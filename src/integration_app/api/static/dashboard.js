@@ -8,6 +8,7 @@ const state = {
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("refresh-button").addEventListener("click", refreshAll);
   document.getElementById("event-filters").addEventListener("input", fetchEvents);
+  document.getElementById("event-detail-close").addEventListener("click", hideEventDetail);
   refreshAll();
 });
 
@@ -110,7 +111,7 @@ function renderEvents() {
   const body = document.getElementById("events-body");
   body.innerHTML = "";
   if (state.events.length === 0) {
-    body.innerHTML = '<tr><td colspan="7">Sem eventos para apresentar.</td></tr>';
+    body.innerHTML = '<tr><td colspan="8">Sem eventos para apresentar.</td></tr>';
     return;
   }
   for (const event of state.events) {
@@ -123,9 +124,46 @@ function renderEvents() {
       <td>${escapeHtml(event.confirmation_status || "")}</td>
       <td>${escapeHtml(shortPath(event.local_path || ""))}</td>
       <td>${escapeHtml(event.error_message || "")}</td>
+      <td><button class="link-button" type="button" data-event-id="${event.id}">Detalhe</button></td>
     `;
+    row.querySelector("button").addEventListener("click", () => showEventDetail(event.id));
     body.appendChild(row);
   }
+}
+
+async function showEventDetail(eventId) {
+  const panel = document.getElementById("event-detail");
+  const body = document.getElementById("event-detail-body");
+  panel.hidden = false;
+  body.textContent = "A carregar detalhe...";
+  try {
+    const detail = await getJson(`/events/${eventId}`);
+    body.innerHTML = detailRows([
+      ["Ligacao", detail.connection_name],
+      ["Estado", detail.status],
+      ["Confirmacao", detail.confirmation_status],
+      ["Fornecedor EDI", detail.edi_fornecedor_nome],
+      ["Numero encomenda EDI", detail.edi_numero_encomenda],
+      ["Fornecedor XML", detail.xml_seller_name],
+      ["Numero encomenda XML", detail.xml_order_number],
+      ["Ficheiro local", detail.local_path],
+      ["Ficheiro remoto", detail.remote_path],
+      ["Erro", detail.error_message],
+    ]);
+  } catch (error) {
+    body.textContent = `Erro ao carregar detalhe: ${error.message}`;
+  }
+}
+
+function hideEventDetail() {
+  document.getElementById("event-detail").hidden = true;
+}
+
+function detailRows(rows) {
+  return rows
+    .filter(([, value]) => value !== null && value !== undefined && value !== "")
+    .map(([label, value]) => `<div class="detail-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`)
+    .join("");
 }
 
 function renderSuppliers() {

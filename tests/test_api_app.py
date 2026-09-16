@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -34,7 +35,7 @@ def test_summary_and_events_endpoints_return_json(tmp_path: Path):
         remote_dir="/inbound",
         file_pattern="*.txt",
     )
-    store.record_detected(connection, tmp_path / "file.txt", "/inbound/file.txt")
+    event_id = store.record_detected(connection, tmp_path / "file.txt", "/inbound/file.txt")
     app = create_app(db_path, tmp_path / "reports")
     client = TestClient(app)
 
@@ -44,7 +45,58 @@ def test_summary_and_events_endpoints_return_json(tmp_path: Path):
     assert summary.status_code == 200
     assert summary.json()["total_files"] == 1
     assert events.status_code == 200
+    assert events.json()["items"][0]["id"] == event_id
     assert events.json()["items"][0]["connection_name"] == "main"
+
+
+def test_event_detail_endpoint_returns_enriched_json(tmp_path: Path):
+    db_path = tmp_path / "integration.db"
+    store = SQLiteStore(db_path)
+    store.initialize()
+    source = tmp_path / "send"
+    sent = source / "Enviados"
+    sent.mkdir(parents=True)
+    file_name = "Pedido_EDI_Entregafarm_BAYER_F200-202600525.txt"
+    (sent / file_name).write_text(
+        "HPEDIDO0001               PT5106785059125042\n"
+        "C   PT500043256                                                                                                                    2026072400010050         0001                                                                                          TER/F200/202600525\n"
+        "D0000015273289             20260724\n",
+        encoding="utf-8",
+    )
+    connection = ConnectionConfig(
+        name="edi",
+        enabled=True,
+        flow_type="generic",
+        protocol="ftp",
+        host="ftp.example.test",
+        port=21,
+        username="user",
+        source_dir=source,
+        remote_dir="/inbound",
+        file_pattern="*.txt",
+    )
+    event_id = store.record_detected(connection, source / file_name, "/inbound/" + file_name)
+    instant = datetime(2026, 9, 16, 10, 0, tzinfo=UTC)
+    store.record_transfer_result(event_id, "sent", instant, instant, None)
+    app = create_app(db_path, tmp_path / "reports")
+
+    response = TestClient(app).get(f"/events/{event_id}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] == event_id
+    assert payload["connection_name"] == "edi"
+    assert payload["edi_fornecedor_nome"] == "BAYER"
+
+
+def test_event_detail_endpoint_returns_404_for_unknown_id(tmp_path: Path):
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    app = create_app(db_path, tmp_path / "reports")
+
+    response = TestClient(app).get("/events/999")
+
+    assert response.status_code == 404
 
 
 def test_reports_endpoint_lists_files(tmp_path: Path):
@@ -144,6 +196,9 @@ def test_dashboard_html_contains_required_dom_hooks(tmp_path: Path):
         "limit-filter",
         "operational-alerts",
         "events-body",
+        "event-detail",
+        "event-detail-body",
+        "event-detail-close",
         "suppliers-list",
         "reports-list",
     ]
@@ -165,6 +220,8 @@ def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
     assert 'getJson("/suppliers")' in javascript
     assert 'getJson("/reports")' in javascript
     assert 'href = `/reports/${encodeURIComponent(report.name || "")}`' in javascript
+    assert "showEventDetail" in javascript
+    assert "getJson(`/events/${eventId}`)" in javascript
     assert "fetch(" in javascript
     assert "method:" not in javascript
 

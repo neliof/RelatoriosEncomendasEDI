@@ -6,7 +6,14 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from integration_app.api.read_models import EventFilters, fetch_events, fetch_summary, fetch_suppliers, list_reports
+from integration_app.api.read_models import (
+    EventFilters,
+    fetch_event_detail,
+    fetch_events,
+    fetch_summary,
+    fetch_suppliers,
+    list_reports,
+)
 
 
 def create_app(db_path: Path, report_dir: Path) -> FastAPI:
@@ -42,6 +49,13 @@ def create_app(db_path: Path, report_dir: Path) -> FastAPI:
             limit=limit,
         )
         return {"items": fetch_events(db_path, filters)}
+
+    @app.get("/events/{event_id}")
+    def event_detail(event_id: int) -> dict[str, object]:
+        detail = fetch_event_detail(db_path, event_id)
+        if detail is None:
+            raise HTTPException(status_code=404, detail="Event not found")
+        return detail
 
     @app.get("/suppliers")
     def suppliers() -> dict[str, object]:

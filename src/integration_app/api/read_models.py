@@ -17,6 +17,7 @@ class EventFilters:
 
 
 EVENT_COLUMNS = [
+    "id",
     "connection_name",
     "flow_type",
     "protocol",
@@ -54,6 +55,15 @@ def fetch_events(db_path: Path, filters: EventFilters) -> list[dict[str, object]
     with _connect(db_path) as conn:
         rows = conn.execute(sql, params).fetchall()
     return [dict(row) for row in rows]
+
+
+def fetch_event_detail(db_path: Path, event_id: int) -> dict[str, object] | None:
+    sql = f"SELECT {', '.join(EVENT_COLUMNS)} FROM file_events WHERE id = ?"
+    with _connect(db_path) as conn:
+        row = conn.execute(sql, (event_id,)).fetchone()
+    if row is None:
+        return None
+    return _enrich_row(dict(row))
 
 
 def fetch_summary(db_path: Path) -> dict[str, object]:

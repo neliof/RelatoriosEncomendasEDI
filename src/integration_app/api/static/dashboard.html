@@ -56,6 +56,7 @@
                 <th>Confirmacao</th>
                 <th>Ficheiro</th>
                 <th>Erro</th>
+                <th>Acao</th>
               </tr>
             </thead>
             <tbody id="events-body"></tbody>
@@ -76,6 +77,15 @@
         </article>
       </section>
     </main>
+    <aside id="event-detail" class="detail-panel" hidden>
+      <div class="detail-card">
+        <div class="detail-header">
+          <h2>Detalhe do evento</h2>
+          <button id="event-detail-close" type="button">Fechar</button>
+        </div>
+        <div id="event-detail-body" class="detail-body"></div>
+      </div>
+    </aside>
     <script src="/static/dashboard.js" defer></script>
   </body>
 </html>
