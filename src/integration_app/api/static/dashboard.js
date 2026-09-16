@@ -1,6 +1,7 @@
 const state = {
   summary: null,
   events: [],
+  connections: [],
   suppliers: [],
   reports: [],
 };
@@ -14,7 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function refreshAll() {
-  await Promise.all([fetchSummary(), fetchEvents(), fetchSuppliers(), fetchReports()]);
+  await Promise.all([fetchSummary(), fetchEvents(), fetchConnections(), fetchSuppliers(), fetchReports()]);
   document.getElementById("last-updated").textContent = `Ultima actualizacao: ${new Date().toLocaleString("pt-PT")}`;
 }
 
@@ -75,6 +76,53 @@ async function fetchSuppliers() {
   } catch (error) {
     showError("suppliers-error", error);
   }
+}
+
+async function fetchConnections() {
+  try {
+    hideError("connections-error");
+    const payload = await getJson("/connections");
+    state.connections = payload.items || [];
+    renderConnections();
+  } catch (error) {
+    showError("connections-error", error);
+  }
+}
+
+function renderConnections() {
+  const container = document.getElementById("connections-list");
+  container.innerHTML = "";
+  if (state.connections.length === 0) {
+    container.textContent = "Sem ligacoes para apresentar.";
+    return;
+  }
+  for (const connection of state.connections) {
+    const row = document.createElement("button");
+    row.className = connectionRowClass(connection);
+    row.type = "button";
+    row.innerHTML = `
+      <strong>${escapeHtml(connection.connection_name || "")}</strong>
+      <small>${escapeHtml(connection.protocol || "")} | Total: ${connection.total_files ?? 0}</small>
+      <small>Falhados: ${connection.failed_count ?? 0} | Pendentes: ${connection.pending_count ?? 0} | Duplicados: ${connection.duplicate_count ?? 0}</small>
+    `;
+    row.addEventListener("click", () => filterEventsByConnection(connection.connection_name));
+    container.appendChild(row);
+  }
+}
+
+function filterEventsByConnection(connectionName) {
+  document.getElementById("connection-filter").value = connectionName || "";
+  fetchEvents();
+}
+
+function connectionRowClass(connection) {
+  if (Number(connection.failed_count || 0) > 0) {
+    return "connection-row failed";
+  }
+  if (Number(connection.pending_count || 0) > 0) {
+    return "connection-row pending";
+  }
+  return "connection-row";
 }
 
 async function fetchReports() {

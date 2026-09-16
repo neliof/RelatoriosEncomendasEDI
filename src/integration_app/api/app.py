@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from integration_app.api.read_models import (
     EventFilters,
+    fetch_connections,
     fetch_event_detail,
     fetch_events,
     fetch_summary,
@@ -56,6 +57,10 @@ def create_app(db_path: Path, report_dir: Path) -> FastAPI:
         if detail is None:
             raise HTTPException(status_code=404, detail="Event not found")
         return detail
+
+    @app.get("/connections")
+    def connections() -> dict[str, object]:
+        return {"items": fetch_connections(db_path)}
 
     @app.get("/suppliers")
     def suppliers() -> dict[str, object]:

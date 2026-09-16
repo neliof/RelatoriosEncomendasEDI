@@ -99,6 +99,34 @@ def test_event_detail_endpoint_returns_404_for_unknown_id(tmp_path: Path):
     assert response.status_code == 404
 
 
+def test_connections_endpoint_returns_operational_summary(tmp_path: Path):
+    db_path = tmp_path / "integration.db"
+    store = SQLiteStore(db_path)
+    store.initialize()
+    connection = ConnectionConfig(
+        name="edi",
+        enabled=True,
+        flow_type="generic",
+        protocol="ftp",
+        host="ftp.example.test",
+        port=21,
+        username="user",
+        source_dir=tmp_path,
+        remote_dir="/inbound",
+        file_pattern="*.txt",
+    )
+    instant = datetime(2026, 9, 16, 10, 0, tzinfo=UTC)
+    event_id = store.record_detected(connection, tmp_path / "file.txt", "/inbound/file.txt")
+    store.record_transfer_result(event_id, "failed", instant, instant, "Boom")
+    app = create_app(db_path, tmp_path / "reports")
+
+    response = TestClient(app).get("/connections")
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["connection_name"] == "edi"
+    assert response.json()["items"][0]["failed_count"] == 1
+
+
 def test_reports_endpoint_lists_files(tmp_path: Path):
     db_path = tmp_path / "integration.db"
     SQLiteStore(db_path).initialize()
@@ -196,6 +224,7 @@ def test_dashboard_html_contains_required_dom_hooks(tmp_path: Path):
         "date-to-filter",
         "limit-filter",
         "operational-alerts",
+        "connections-list",
         "events-body",
         "event-detail",
         "event-detail-body",
@@ -221,6 +250,7 @@ def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
     assert 'params.set("date_from", dateFrom)' in javascript
     assert 'params.set("date_to", dateTo)' in javascript
     assert 'getJson("/suppliers")' in javascript
+    assert 'getJson("/connections")' in javascript
     assert 'getJson("/reports")' in javascript
     assert 'href = `/reports/${encodeURIComponent(report.name || "")}`' in javascript
     assert "showEventDetail" in javascript
@@ -229,6 +259,8 @@ def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
     assert "event-row" in javascript
     assert "supplierForEvent" in javascript
     assert "orderNumberForEvent" in javascript
+    assert "fetchConnections" in javascript
+    assert "filterEventsByConnection" in javascript
     assert "fetch(" in javascript
     assert "method:" not in javascript
 
@@ -244,6 +276,8 @@ def test_dashboard_assets_include_operational_alert_styles(tmp_path: Path):
     assert ".alerts" in css
     assert ".alert-item.failed" in css
     assert ".event-row.failed" in css
+    assert ".connection-row.failed" in css
+    assert ".connection-row.pending" in css
     assert ".event-row.duplicate" in css
     assert ".event-row.pending" in css
     assert "renderOperationalAlerts" in javascript

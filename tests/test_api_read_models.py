@@ -3,6 +3,7 @@ from pathlib import Path
 
 from integration_app.api.read_models import (
     EventFilters,
+    fetch_connections,
     fetch_event_detail,
     fetch_events,
     fetch_summary,
@@ -127,6 +128,47 @@ def test_fetch_events_includes_enriched_supplier_and_order_fields(tmp_path: Path
     assert rows[0]["id"] == event_id
     assert rows[0]["edi_fornecedor_nome"] == "BAYER"
     assert rows[0]["edi_numero_encomenda"] == "202600525"
+
+
+def test_fetch_connections_aggregates_status_by_connection(tmp_path: Path):
+    store = SQLiteStore(tmp_path / "integration.db")
+    store.initialize()
+    edi = _connection(tmp_path, "edi")
+    xml = _connection(tmp_path, "xml")
+    instant = datetime(2026, 9, 16, 10, 0, tzinfo=UTC)
+    sent_id = store.record_detected(edi, tmp_path / "sent.txt", "/inbound/sent.txt")
+    store.record_transfer_result(sent_id, "sent", instant, instant, None)
+    failed_id = store.record_detected(edi, tmp_path / "failed.txt", "/inbound/failed.txt")
+    store.record_transfer_result(failed_id, "failed", instant, instant, "Boom")
+    duplicate_id = store.record_detected(xml, tmp_path / "duplicate.xml", "/inbound/duplicate.xml")
+    store.record_transfer_result(duplicate_id, "duplicate", instant, instant, "Duplicate")
+
+    rows = fetch_connections(tmp_path / "integration.db")
+
+    assert rows == [
+        {
+            "connection_name": "edi",
+            "protocol": "ftp",
+            "total_files": 2,
+            "sent_count": 1,
+            "confirmed_count": 0,
+            "duplicate_count": 0,
+            "failed_count": 1,
+            "pending_count": 1,
+            "last_detected_at": rows[0]["last_detected_at"],
+        },
+        {
+            "connection_name": "xml",
+            "protocol": "ftp",
+            "total_files": 1,
+            "sent_count": 0,
+            "confirmed_count": 0,
+            "duplicate_count": 1,
+            "failed_count": 0,
+            "pending_count": 0,
+            "last_detected_at": rows[1]["last_detected_at"],
+        },
+    ]
 
 
 def test_fetch_event_detail_returns_none_for_unknown_id(tmp_path: Path):

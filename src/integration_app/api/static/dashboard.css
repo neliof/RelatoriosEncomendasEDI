@@ -252,6 +252,40 @@ th {
   color: var(--muted);
 }
 
+.connection-list {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 12px;
+}
+
+.connection-row {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  text-align: left;
+}
+
+.connection-row.failed {
+  border-color: #f0b7ae;
+}
+
+.connection-row.pending {
+  border-color: #e6c76c;
+}
+
+.connection-row strong {
+  font-size: 15px;
+}
+
+.connection-row small {
+  color: var(--muted);
+}
+
 .detail-panel {
   position: fixed;
   inset: 0;

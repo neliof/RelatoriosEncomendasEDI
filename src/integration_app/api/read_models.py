@@ -96,6 +96,38 @@ def fetch_summary(db_path: Path) -> dict[str, object]:
     return summary
 
 
+def fetch_connections(db_path: Path) -> list[dict[str, object]]:
+    connections: dict[str, dict[str, object]] = {}
+    for row in fetch_events(db_path, EventFilters(limit=500)):
+        name = str(row.get("connection_name") or "")
+        if name not in connections:
+            connections[name] = {
+                "connection_name": name,
+                "protocol": row.get("protocol"),
+                "total_files": 0,
+                "sent_count": 0,
+                "confirmed_count": 0,
+                "duplicate_count": 0,
+                "failed_count": 0,
+                "pending_count": 0,
+                "last_detected_at": row.get("detected_at"),
+            }
+        item = connections[name]
+        status = str(row.get("status") or "")
+        item["total_files"] = int(item["total_files"]) + 1
+        if status in {"sent", "confirmed"}:
+            item["sent_count"] = int(item["sent_count"]) + 1
+        if status == "confirmed":
+            item["confirmed_count"] = int(item["confirmed_count"]) + 1
+        elif status == "duplicate":
+            item["duplicate_count"] = int(item["duplicate_count"]) + 1
+        elif status == "failed":
+            item["failed_count"] = int(item["failed_count"]) + 1
+        if row.get("confirmation_status") == "pending":
+            item["pending_count"] = int(item["pending_count"]) + 1
+    return [connections[name] for name in sorted(connections)]
+
+
 def list_reports(report_dir: Path) -> list[dict[str, object]]:
     if not report_dir.exists():
         return []
