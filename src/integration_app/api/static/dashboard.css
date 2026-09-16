@@ -192,6 +192,15 @@ th {
   text-transform: uppercase;
 }
 
+.event-row.failed {
+  background: #fff7f5;
+}
+
+.event-row.duplicate,
+.event-row.pending {
+  background: #fffaf0;
+}
+
 .status {
   display: inline-block;
   border-radius: 999px;

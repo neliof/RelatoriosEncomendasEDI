@@ -8,6 +8,7 @@ const state = {
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("refresh-button").addEventListener("click", refreshAll);
   document.getElementById("event-filters").addEventListener("input", fetchEvents);
+  document.getElementById("clear-filters-button").addEventListener("click", clearEventFilters);
   document.getElementById("event-detail-close").addEventListener("click", hideEventDetail);
   refreshAll();
 });
@@ -54,6 +55,15 @@ async function fetchEvents() {
   } catch (error) {
     showError("events-error", error);
   }
+}
+
+function clearEventFilters() {
+  document.getElementById("status-filter").value = "";
+  document.getElementById("connection-filter").value = "";
+  document.getElementById("date-from-filter").value = "";
+  document.getElementById("date-to-filter").value = "";
+  document.getElementById("limit-filter").value = "100";
+  fetchEvents();
 }
 
 async function fetchSuppliers() {
@@ -111,14 +121,17 @@ function renderEvents() {
   const body = document.getElementById("events-body");
   body.innerHTML = "";
   if (state.events.length === 0) {
-    body.innerHTML = '<tr><td colspan="8">Sem eventos para apresentar.</td></tr>';
+    body.innerHTML = '<tr><td colspan="10">Sem eventos para apresentar.</td></tr>';
     return;
   }
   for (const event of state.events) {
     const row = document.createElement("tr");
+    row.className = eventRowClass(event);
     row.innerHTML = `
       <td>${formatDate(event.detected_at)}</td>
       <td>${escapeHtml(event.connection_name || "")}</td>
+      <td>${escapeHtml(supplierForEvent(event))}</td>
+      <td>${escapeHtml(orderNumberForEvent(event))}</td>
       <td>${escapeHtml(event.protocol || "")}</td>
       <td>${statusBadge(event.status)}</td>
       <td>${escapeHtml(event.confirmation_status || "")}</td>
@@ -129,6 +142,21 @@ function renderEvents() {
     row.querySelector("button").addEventListener("click", () => showEventDetail(event.id));
     body.appendChild(row);
   }
+}
+
+function eventRowClass(event) {
+  if (event.confirmation_status === "pending") {
+    return "event-row pending";
+  }
+  return `event-row ${event.status || "unknown"}`;
+}
+
+function supplierForEvent(event) {
+  return event.edi_fornecedor_nome || event.xml_seller_name || "";
+}
+
+function orderNumberForEvent(event) {
+  return event.edi_numero_encomenda || event.xml_order_number || event.xml_buyer_order_number || "";
 }
 
 async function showEventDetail(eventId) {

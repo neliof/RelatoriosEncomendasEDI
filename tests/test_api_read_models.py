@@ -104,6 +104,31 @@ def test_fetch_event_detail_returns_enriched_order_fields(tmp_path: Path):
     assert detail["edi_duplicate_key"]
 
 
+def test_fetch_events_includes_enriched_supplier_and_order_fields(tmp_path: Path):
+    store = SQLiteStore(tmp_path / "integration.db")
+    store.initialize()
+    source = tmp_path / "send"
+    sent = source / "Enviados"
+    sent.mkdir(parents=True)
+    connection = _connection(source, "edi")
+    file_name = "Pedido_EDI_Entregafarm_BAYER_F200-202600525.txt"
+    (sent / file_name).write_text(
+        "HPEDIDO0001               PT5106785059125042\n"
+        "C   PT500043256                                                                                                                    2026072400010050         0001                                                                                          TER/F200/202600525\n"
+        "D0000015273289             20260724\n",
+        encoding="utf-8",
+    )
+    instant = datetime(2026, 9, 16, 10, 0, tzinfo=UTC)
+    event_id = store.record_detected(connection, source / file_name, "/inbound/" + file_name)
+    store.record_transfer_result(event_id, "sent", instant, instant, None)
+
+    rows = fetch_events(tmp_path / "integration.db", EventFilters(limit=10))
+
+    assert rows[0]["id"] == event_id
+    assert rows[0]["edi_fornecedor_nome"] == "BAYER"
+    assert rows[0]["edi_numero_encomenda"] == "202600525"
+
+
 def test_fetch_event_detail_returns_none_for_unknown_id(tmp_path: Path):
     store = SQLiteStore(tmp_path / "integration.db")
     store.initialize()

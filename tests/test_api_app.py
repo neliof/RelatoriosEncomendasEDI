@@ -189,6 +189,7 @@ def test_dashboard_html_contains_required_dom_hooks(tmp_path: Path):
         "metric-duplicate",
         "metric-failed",
         "event-filters",
+        "clear-filters-button",
         "status-filter",
         "connection-filter",
         "date-from-filter",
@@ -204,6 +205,8 @@ def test_dashboard_html_contains_required_dom_hooks(tmp_path: Path):
     ]
     for element_id in required_ids:
         assert f'id="{element_id}"' in html
+    assert "<th>Fornecedor</th>" in html
+    assert "<th>Encomenda</th>" in html
 
 
 def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
@@ -222,6 +225,10 @@ def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
     assert 'href = `/reports/${encodeURIComponent(report.name || "")}`' in javascript
     assert "showEventDetail" in javascript
     assert "getJson(`/events/${eventId}`)" in javascript
+    assert "clearEventFilters" in javascript
+    assert "event-row" in javascript
+    assert "supplierForEvent" in javascript
+    assert "orderNumberForEvent" in javascript
     assert "fetch(" in javascript
     assert "method:" not in javascript
 
@@ -236,6 +243,9 @@ def test_dashboard_assets_include_operational_alert_styles(tmp_path: Path):
 
     assert ".alerts" in css
     assert ".alert-item.failed" in css
+    assert ".event-row.failed" in css
+    assert ".event-row.duplicate" in css
+    assert ".event-row.pending" in css
     assert "renderOperationalAlerts" in javascript
     assert "failed_count" in javascript
     assert "duplicate_count" in javascript

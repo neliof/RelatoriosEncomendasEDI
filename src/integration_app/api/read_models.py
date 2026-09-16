@@ -54,7 +54,7 @@ def fetch_events(db_path: Path, filters: EventFilters) -> list[dict[str, object]
     params.append(max(1, min(filters.limit, 500)))
     with _connect(db_path) as conn:
         rows = conn.execute(sql, params).fetchall()
-    return [dict(row) for row in rows]
+    return [_enrich_row(dict(row)) for row in rows]
 
 
 def fetch_event_detail(db_path: Path, event_id: int) -> dict[str, object] | None:
