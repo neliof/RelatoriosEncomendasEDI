@@ -106,10 +106,21 @@ function renderConfigSummary() {
         <strong>${escapeHtml(connection.name || "")}</strong>
         <small>${escapeHtml(connection.protocol || "")} | ${connection.enabled ? "Activo" : "Inactivo"} | ${escapeHtml(connection.file_pattern || "")}</small>
         <small>${escapeHtml(connection.source_dir || "")} -> ${escapeHtml(connection.remote_dir || "")}</small>
+        <small>${escapeHtml(connection.duplicate_policy || "")} | Confirmacao: ${connection.confirm_remote_processing ? "sim" : "nao"}</small>
       </div>
-      <small>${escapeHtml(connection.duplicate_policy || "")} | Confirmacao: ${connection.confirm_remote_processing ? "sim" : "nao"}</small>
+      <button class="config-action" type="button">${connection.enabled ? "Desactivar" : "Activar"}</button>
     `;
+    row.querySelector(".config-action").addEventListener("click", () => toggleConnectionEnabled(connection.name, !connection.enabled));
     container.appendChild(row);
+  }
+}
+
+async function toggleConnectionEnabled(connectionName, enabled) {
+  try {
+    await patchJson(`/config/connections/${encodeURIComponent(connectionName)}`, { enabled });
+    await fetchConfigSummary();
+  } catch (error) {
+    showError("config-error", error);
   }
 }
 
@@ -173,6 +184,18 @@ async function fetchReports() {
 
 async function getJson(url) {
   const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+async function patchJson(url, payload) {
+  const response = await fetch(url, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
   }

@@ -346,9 +346,10 @@ def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
     assert "orderNumberForEvent" in javascript
     assert "fetchConnections" in javascript
     assert "filterEventsByConnection" in javascript
-    assert "fetchConfigSummary" in javascript
+    assert "fetchConfigSummary()" in javascript
+    assert "toggleConnectionEnabled" in javascript
+    assert 'method: "PATCH"' in javascript
     assert "fetch(" in javascript
-    assert "method:" not in javascript
 
 
 def test_dashboard_assets_include_operational_alert_styles(tmp_path: Path):
@@ -364,6 +365,7 @@ def test_dashboard_assets_include_operational_alert_styles(tmp_path: Path):
     assert ".event-row.failed" in css
     assert ".connection-row.failed" in css
     assert ".connection-row.pending" in css
+    assert ".config-action" in css
     assert ".event-row.duplicate" in css
     assert ".event-row.pending" in css
     assert "renderOperationalAlerts" in javascript

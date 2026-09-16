@@ -252,6 +252,10 @@ th {
   color: var(--muted);
 }
 
+.config-action {
+  justify-self: end;
+}
+
 .connection-list {
   display: grid;
   gap: 8px;
