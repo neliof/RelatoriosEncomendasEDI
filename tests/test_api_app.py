@@ -90,3 +90,46 @@ def test_dashboard_static_assets_are_served(tmp_path: Path):
     assert js.status_code == 200
     assert "text/javascript" in js.headers["content-type"]
     assert "fetchSummary" in js.text
+
+
+def test_dashboard_html_contains_required_dom_hooks(tmp_path: Path):
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    app = create_app(db_path, tmp_path / "reports")
+
+    html = TestClient(app).get("/").text
+
+    required_ids = [
+        "last-updated",
+        "refresh-button",
+        "metric-total",
+        "metric-sent",
+        "metric-confirmed",
+        "metric-pending",
+        "metric-duplicate",
+        "metric-failed",
+        "event-filters",
+        "status-filter",
+        "connection-filter",
+        "limit-filter",
+        "events-body",
+        "suppliers-list",
+        "reports-list",
+    ]
+    for element_id in required_ids:
+        assert f'id="{element_id}"' in html
+
+
+def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    app = create_app(db_path, tmp_path / "reports")
+
+    javascript = TestClient(app).get("/static/dashboard.js").text
+
+    assert 'getJson("/summary")' in javascript
+    assert "getJson(`/events?" in javascript
+    assert 'getJson("/suppliers")' in javascript
+    assert 'getJson("/reports")' in javascript
+    assert "fetch(" in javascript
+    assert "method:" not in javascript
