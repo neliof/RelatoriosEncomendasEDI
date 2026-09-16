@@ -50,22 +50,46 @@ REPORT_COLUMNS = [
     "xml_duplicate_status",
 ]
 
+SUMMARY_COLUMNS = [
+    "report_date",
+    "connection_name",
+    "flow_type",
+    "protocol",
+    "supplier_name",
+    "total_files",
+    "sent_count",
+    "confirmed_count",
+    "duplicate_count",
+    "failed_count",
+    "pending_count",
+    "unknown_count",
+    "total_order_lines",
+]
+
 
 def export_reports(store: SQLiteStore, report_dir: Path, run_id: str) -> list[Path]:
     report_dir.mkdir(parents=True, exist_ok=True)
     rows = _mark_duplicates([_enrich_row(row) for row in store.report_rows()])
+    summary_rows = _build_daily_summary(rows)
     csv_path = report_dir / f"{run_id}.csv"
     json_path = report_dir / f"{run_id}.json"
     xlsx_path = report_dir / f"{run_id}.xlsx"
+    summary_csv_path = report_dir / f"{run_id}-summary.csv"
+    summary_json_path = report_dir / f"{run_id}-summary.json"
+    summary_xlsx_path = report_dir / f"{run_id}-summary.xlsx"
     _write_csv(csv_path, rows)
     _write_json(json_path, rows)
     _write_xlsx(xlsx_path, rows)
-    return [csv_path, json_path, xlsx_path]
+    _write_csv(summary_csv_path, summary_rows, SUMMARY_COLUMNS)
+    _write_json(summary_json_path, summary_rows)
+    _write_xlsx(summary_xlsx_path, summary_rows, SUMMARY_COLUMNS, "Daily Summary")
+    return [csv_path, json_path, xlsx_path, summary_csv_path, summary_json_path, summary_xlsx_path]
 
 
-def _write_csv(path: Path, rows: list[dict[str, object]]) -> None:
+def _write_csv(path: Path, rows: list[dict[str, object]], columns: list[str] | None = None) -> None:
+    fieldnames = columns or REPORT_COLUMNS
     with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=REPORT_COLUMNS)
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
 
@@ -74,14 +98,64 @@ def _write_json(path: Path, rows: list[dict[str, object]]) -> None:
     path.write_text(json.dumps(rows, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
-def _write_xlsx(path: Path, rows: list[dict[str, object]]) -> None:
+def _write_xlsx(path: Path, rows: list[dict[str, object]], columns: list[str] | None = None, title: str = "Report") -> None:
+    fieldnames = columns or REPORT_COLUMNS
     workbook = Workbook()
     sheet = workbook.active
-    sheet.title = "Report"
-    sheet.append(REPORT_COLUMNS)
+    sheet.title = title
+    sheet.append(fieldnames)
     for row in rows:
-        sheet.append([row.get(column) for column in REPORT_COLUMNS])
+        sheet.append([row.get(column) for column in fieldnames])
     workbook.save(path)
+
+
+def _build_daily_summary(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    summary: dict[tuple[str, str, str, str, str], dict[str, object]] = {}
+    for row in rows:
+        key = (
+            _date_part(row.get("detected_at")),
+            str(row.get("connection_name") or ""),
+            str(row.get("flow_type") or ""),
+            str(row.get("protocol") or ""),
+            _supplier_name(row),
+        )
+        if key not in summary:
+            report_date, connection_name, flow_type, protocol, supplier_name = key
+            summary[key] = {
+                "report_date": report_date,
+                "connection_name": connection_name,
+                "flow_type": flow_type,
+                "protocol": protocol,
+                "supplier_name": supplier_name,
+                "total_files": 0,
+                "sent_count": 0,
+                "confirmed_count": 0,
+                "duplicate_count": 0,
+                "failed_count": 0,
+                "pending_count": 0,
+                "unknown_count": 0,
+                "total_order_lines": 0,
+            }
+        item = summary[key]
+        status = str(row.get("status") or "")
+        confirmation_status = str(row.get("confirmation_status") or "")
+        item["total_files"] = int(item["total_files"]) + 1
+        if status in {"sent", "confirmed"}:
+            item["sent_count"] = int(item["sent_count"]) + 1
+        if status == "confirmed":
+            item["confirmed_count"] = int(item["confirmed_count"]) + 1
+        elif status == "sent":
+            pass
+        elif status == "duplicate":
+            item["duplicate_count"] = int(item["duplicate_count"]) + 1
+        elif status == "failed":
+            item["failed_count"] = int(item["failed_count"]) + 1
+        else:
+            item["unknown_count"] = int(item["unknown_count"]) + 1
+        if confirmation_status == "pending":
+            item["pending_count"] = int(item["pending_count"]) + 1
+        item["total_order_lines"] = int(item["total_order_lines"]) + _order_lines(row)
+    return [summary[key] for key in sorted(summary)]
 
 
 def _enrich_row(row: dict[str, object]) -> dict[str, object]:
@@ -173,3 +247,29 @@ def _resolve_order_edi_path(row: dict[str, object]) -> Path | None:
         if duplicate_path.exists():
             return duplicate_path
     return None
+
+
+def _date_part(value: object) -> str:
+    if not isinstance(value, str) or not value:
+        return ""
+    return value[:10]
+
+
+def _supplier_name(row: dict[str, object]) -> str:
+    edi_supplier = row.get("edi_fornecedor_nome")
+    if isinstance(edi_supplier, str) and edi_supplier:
+        return edi_supplier
+    xml_supplier = row.get("xml_seller_name")
+    if isinstance(xml_supplier, str) and xml_supplier:
+        return xml_supplier
+    return "UNKNOWN"
+
+
+def _order_lines(row: dict[str, object]) -> int:
+    for key in ("edi_linhas_encomenda", "xml_linhas_encomenda"):
+        value = row.get(key)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str) and value.isdigit():
+            return int(value)
+    return 0

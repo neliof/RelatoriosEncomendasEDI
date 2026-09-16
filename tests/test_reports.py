@@ -28,8 +28,69 @@ def test_export_reports_writes_csv_json_and_xlsx(tmp_path: Path):
     paths = export_reports(store, tmp_path / "reports", "run-1")
 
     names = {path.name for path in paths}
-    assert names == {"run-1.csv", "run-1.json", "run-1.xlsx"}
+    assert names == {
+        "run-1.csv",
+        "run-1.json",
+        "run-1.xlsx",
+        "run-1-summary.csv",
+        "run-1-summary.json",
+        "run-1-summary.xlsx",
+    }
     assert (tmp_path / "reports" / "run-1.csv").read_text(encoding="utf-8").startswith("connection_name,")
+    summary_text = (tmp_path / "reports" / "run-1-summary.csv").read_text(encoding="utf-8")
+    assert ",1,1,0,0,0,1,0,0" in summary_text
+
+
+def test_export_reports_writes_daily_summary_by_connection_and_supplier(tmp_path: Path):
+    store = SQLiteStore(tmp_path / "integration.db")
+    store.initialize()
+    source = tmp_path / "send"
+    sent = source / "Enviados"
+    duplicates = source / "Duplicados"
+    errors = source / "Erros"
+    sent.mkdir(parents=True)
+    duplicates.mkdir()
+    errors.mkdir()
+    connection = ConnectionConfig(
+        name="edi_bayer",
+        enabled=True,
+        flow_type="generic",
+        protocol="ftp",
+        host="ftp.example.test",
+        port=21,
+        username="user",
+        source_dir=source,
+        remote_dir="/inbound",
+        file_pattern="*.txt",
+    )
+    edi_body = """HPEDIDO0001               PT5106785059125042
+C   PT500043256                                                                                                                    2026072400010050         0001                                                                                          TER/F200/202600525
+D0000015273289             20260724
+D0000023045580             20260724
+"""
+    for folder, name, status, confirmation in [
+        (sent, "Pedido_EDI_Entregafarm_BAYER_F200-202600525.txt", "sent", "confirmed"),
+        (duplicates, "Pedido_EDI_Entregafarm_BAYER_F200-202600525_copia.txt", "duplicate", None),
+        (errors, "Pedido_EDI_Entregafarm_BAYER_F200-202600526.txt", "failed", None),
+    ]:
+        (folder / name).write_text(edi_body, encoding="utf-8")
+        event_id = store.record_detected(connection, source / name, "/inbound/" + name)
+        instant = datetime(2026, 9, 14, 10, 0, tzinfo=UTC)
+        store.record_transfer_result(event_id, status, instant, instant, "boom" if status == "failed" else None)
+        if confirmation == "confirmed":
+            store.record_confirmation(event_id, "confirmed", instant)
+
+    paths = export_reports(store, tmp_path / "reports", "run-daily")
+
+    names = {path.name for path in paths}
+    assert "run-daily-summary.csv" in names
+    summary_text = (tmp_path / "reports" / "run-daily-summary.csv").read_text(encoding="utf-8")
+    assert "report_date,connection_name,flow_type,protocol,supplier_name" in summary_text
+    report_date = datetime.now(UTC).date().isoformat()
+    assert f"{report_date},edi_bayer,generic,ftp,BAYER,3,1,1,1,1,0,0,6" in summary_text
+    summary_json = (tmp_path / "reports" / "run-daily-summary.json").read_text(encoding="utf-8")
+    assert '"supplier_name": "BAYER"' in summary_json
+    assert (tmp_path / "reports" / "run-daily-summary.xlsx").exists()
 
 
 def test_export_reports_enriches_sent_order_edi_from_status_folder(tmp_path: Path):
