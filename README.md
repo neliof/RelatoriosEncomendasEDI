@@ -39,7 +39,9 @@ Depois de arrancar, abrir o dashboard no browser:
 http://127.0.0.1:8000/
 ```
 
-O dashboard mostra resumo operacional, eventos recentes, fornecedores e relatorios gerados. Continua a ser apenas de leitura.
+O dashboard mostra resumo operacional, eventos recentes, fornecedores e relatorios gerados.
+
+Na seccao `Configuracao`, permite activar/desactivar ligacoes existentes. Antes de alterar `config.yaml`, a aplicacao cria backup em `config.backups/`, valida a configuracao resultante e rejeita campos sensiveis como passwords, host, username, port e protocolo.
 
 Endpoints principais:
 
@@ -48,8 +50,7 @@ Endpoints principais:
 - `http://127.0.0.1:8000/events`
 - `http://127.0.0.1:8000/suppliers`
 - `http://127.0.0.1:8000/reports`
-
-A API e apenas de leitura nesta fase.
+- `PATCH http://127.0.0.1:8000/config/connections/{nome}`
 
 ## Execucao Diaria
 
