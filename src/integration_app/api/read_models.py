@@ -4,6 +4,8 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
+from integration_app.reports.exporters import _enrich_row
+
 
 @dataclass(frozen=True)
 class EventFilters:
@@ -84,7 +86,59 @@ def fetch_summary(db_path: Path) -> dict[str, object]:
     return summary
 
 
+def list_reports(report_dir: Path) -> list[dict[str, object]]:
+    if not report_dir.exists():
+        return []
+    rows: list[dict[str, object]] = []
+    for path in sorted(report_dir.iterdir(), key=lambda item: item.stat().st_mtime, reverse=True):
+        if not path.is_file():
+            continue
+        rows.append(
+            {
+                "name": path.name,
+                "path": str(path),
+                "kind": _report_kind(path.name),
+                "size_bytes": path.stat().st_size,
+                "modified_at": path.stat().st_mtime,
+            }
+        )
+    return rows
+
+
+def fetch_suppliers(db_path: Path) -> list[dict[str, object]]:
+    suppliers: dict[str, dict[str, object]] = {}
+    for row in fetch_events(db_path, EventFilters(limit=500)):
+        enriched = _enrich_row(row)
+        supplier_name = str(enriched.get("edi_fornecedor_nome") or enriched.get("xml_seller_name") or "UNKNOWN")
+        if supplier_name not in suppliers:
+            suppliers[supplier_name] = {
+                "supplier_name": supplier_name,
+                "total_files": 0,
+                "failed_count": 0,
+                "duplicate_count": 0,
+            }
+        item = suppliers[supplier_name]
+        item["total_files"] = int(item["total_files"]) + 1
+        if row.get("status") == "failed":
+            item["failed_count"] = int(item["failed_count"]) + 1
+        if row.get("status") == "duplicate":
+            item["duplicate_count"] = int(item["duplicate_count"]) + 1
+    return [suppliers[name] for name in sorted(suppliers)]
+
+
 def _connect(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def _report_kind(name: str) -> str:
+    if "-summary." in name:
+        return "summary"
+    if "-exceptions." in name:
+        return "generix_exceptions"
+    if name.startswith("generix-"):
+        return "generix"
+    if name.startswith("run-"):
+        return "run"
+    return "other"
