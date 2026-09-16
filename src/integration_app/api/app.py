@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -50,5 +50,13 @@ def create_app(db_path: Path, report_dir: Path) -> FastAPI:
     @app.get("/reports")
     def reports() -> dict[str, object]:
         return {"items": list_reports(report_dir)}
+
+    @app.get("/reports/{report_name:path}")
+    def report_file(report_name: str) -> FileResponse:
+        root = report_dir.resolve()
+        candidate = (root / report_name).resolve()
+        if root not in candidate.parents or not candidate.is_file():
+            raise HTTPException(status_code=404, detail="Report not found")
+        return FileResponse(candidate, filename=candidate.name)
 
     return app

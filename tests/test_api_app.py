@@ -61,6 +61,34 @@ def test_reports_endpoint_lists_files(tmp_path: Path):
     assert response.json()["items"][0]["kind"] == "summary"
 
 
+def test_report_file_endpoint_serves_existing_report(tmp_path: Path):
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    report_dir = tmp_path / "reports"
+    report_dir.mkdir()
+    (report_dir / "run-1.csv").write_bytes(b"col\nvalue\n")
+    app = create_app(db_path, report_dir)
+
+    response = TestClient(app).get("/reports/run-1.csv")
+
+    assert response.status_code == 200
+    assert response.content == b"col\nvalue\n"
+    assert "attachment" in response.headers["content-disposition"]
+
+
+def test_report_file_endpoint_rejects_missing_and_unsafe_names(tmp_path: Path):
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    report_dir = tmp_path / "reports"
+    report_dir.mkdir()
+    app = create_app(db_path, report_dir)
+    client = TestClient(app)
+
+    assert client.get("/reports/missing.csv").status_code == 404
+    assert client.get("/reports/%2E%2E").status_code == 404
+    assert client.get("/reports/..%2Fconfig.yaml").status_code == 404
+
+
 def test_dashboard_root_serves_html_with_static_assets(tmp_path: Path):
     db_path = tmp_path / "integration.db"
     SQLiteStore(db_path).initialize()
@@ -136,6 +164,7 @@ def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
     assert 'params.set("date_to", dateTo)' in javascript
     assert 'getJson("/suppliers")' in javascript
     assert 'getJson("/reports")' in javascript
+    assert 'href = `/reports/${encodeURIComponent(report.name || "")}`' in javascript
     assert "fetch(" in javascript
     assert "method:" not in javascript
 

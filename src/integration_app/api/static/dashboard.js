@@ -157,6 +157,7 @@ function renderReports() {
     return;
   }
   for (const report of state.reports.slice(0, 12)) {
+    const href = `/reports/${encodeURIComponent(report.name || "")}`;
     const row = document.createElement("div");
     row.className = "list-row";
     row.innerHTML = `
@@ -164,7 +165,7 @@ function renderReports() {
         <strong>${escapeHtml(report.name || "")}</strong>
         <small>${escapeHtml(report.kind || "other")} | ${formatBytes(report.size_bytes)}</small>
       </div>
-      <small>${formatTimestamp(report.modified_at)}</small>
+      <small>${formatTimestamp(report.modified_at)} | <a href="${href}" target="_blank" rel="noopener">Abrir</a></small>
     `;
     container.appendChild(row);
   }
