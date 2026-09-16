@@ -2,6 +2,7 @@ const state = {
   summary: null,
   events: [],
   connections: [],
+  config: null,
   suppliers: [],
   reports: [],
 };
@@ -15,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 async function refreshAll() {
-  await Promise.all([fetchSummary(), fetchEvents(), fetchConnections(), fetchSuppliers(), fetchReports()]);
+  await Promise.all([fetchSummary(), fetchEvents(), fetchConnections(), fetchConfigSummary(), fetchSuppliers(), fetchReports()]);
   document.getElementById("last-updated").textContent = `Ultima actualizacao: ${new Date().toLocaleString("pt-PT")}`;
 }
 
@@ -75,6 +76,40 @@ async function fetchSuppliers() {
     renderSuppliers();
   } catch (error) {
     showError("suppliers-error", error);
+  }
+}
+
+async function fetchConfigSummary() {
+  try {
+    hideError("config-error");
+    const payload = await getJson("/config/summary");
+    state.config = payload;
+    renderConfigSummary();
+  } catch (error) {
+    showError("config-error", error);
+  }
+}
+
+function renderConfigSummary() {
+  const container = document.getElementById("config-list");
+  container.innerHTML = "";
+  const connections = state.config?.connections || [];
+  if (connections.length === 0) {
+    container.textContent = state.config?.config_exists === false ? "Config.yaml nao encontrado." : "Sem ligacoes configuradas.";
+    return;
+  }
+  for (const connection of connections) {
+    const row = document.createElement("div");
+    row.className = "list-row";
+    row.innerHTML = `
+      <div>
+        <strong>${escapeHtml(connection.name || "")}</strong>
+        <small>${escapeHtml(connection.protocol || "")} | ${connection.enabled ? "Activo" : "Inactivo"} | ${escapeHtml(connection.file_pattern || "")}</small>
+        <small>${escapeHtml(connection.source_dir || "")} -> ${escapeHtml(connection.remote_dir || "")}</small>
+      </div>
+      <small>${escapeHtml(connection.duplicate_policy || "")} | Confirmacao: ${connection.confirm_remote_processing ? "sim" : "nao"}</small>
+    `;
+    container.appendChild(row);
   }
 }
 

@@ -4,6 +4,7 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
+from integration_app.config import load_config
 from integration_app.reports.exporters import _enrich_row
 
 
@@ -126,6 +127,36 @@ def fetch_connections(db_path: Path) -> list[dict[str, object]]:
         if row.get("confirmation_status") == "pending":
             item["pending_count"] = int(item["pending_count"]) + 1
     return [connections[name] for name in sorted(connections)]
+
+
+def fetch_config_summary(config_path: Path) -> dict[str, object]:
+    if not config_path.exists():
+        return {"config_exists": False, "connections": []}
+    config = load_config(config_path)
+    return {
+        "config_exists": True,
+        "connections": [
+            {
+                "name": connection.name,
+                "enabled": connection.enabled,
+                "flow_type": connection.flow_type,
+                "protocol": connection.protocol,
+                "host": connection.host,
+                "port": connection.port,
+                "username": connection.username,
+                "source_dir": str(connection.source_dir),
+                "remote_dir": connection.remote_dir,
+                "file_pattern": connection.file_pattern,
+                "sent_dir": connection.sent_dir,
+                "error_dir": connection.error_dir,
+                "duplicate_policy": connection.duplicate_policy,
+                "confirm_remote_processing": connection.confirm_remote_processing,
+                "has_password_env": connection.password_env is not None,
+                "has_private_key": connection.private_key_path is not None,
+            }
+            for connection in config.connections
+        ],
+    }
 
 
 def list_reports(report_dir: Path) -> list[dict[str, object]]:

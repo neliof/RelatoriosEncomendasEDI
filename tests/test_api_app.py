@@ -127,6 +127,56 @@ def test_connections_endpoint_returns_operational_summary(tmp_path: Path):
     assert response.json()["items"][0]["failed_count"] == 1
 
 
+def test_config_summary_endpoint_sanitizes_connection_settings(tmp_path: Path):
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+app:
+  database_path: data/integration.db
+  log_dir: logs
+  report_dir: reports
+defaults:
+  stable_after_seconds: 30
+  confirmation_timeout_minutes: 120
+connections:
+  - name: laboratorio_x
+    enabled: true
+    flow_type: generic
+    protocol: sftp
+    host: sftp.example.test
+    port: 22
+    username: user
+    password_env: LAB_X_SFTP_PASSWORD
+    source_dir: ./inbox
+    remote_dir: /inbound
+    file_pattern: "*.edi"
+    sent_dir: Enviados
+    error_dir: Erros
+    duplicate_policy: report_only
+    confirm_remote_processing: true
+""",
+        encoding="utf-8",
+    )
+    app = create_app(db_path, tmp_path / "reports", config_path=config_path)
+
+    response = TestClient(app).get("/config/summary")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["config_exists"] is True
+    assert payload["connections"][0]["name"] == "laboratorio_x"
+    assert payload["connections"][0]["protocol"] == "sftp"
+    assert payload["connections"][0]["host"] == "sftp.example.test"
+    assert payload["connections"][0]["source_dir"] == "inbox"
+    assert payload["connections"][0]["remote_dir"] == "/inbound"
+    assert payload["connections"][0]["duplicate_policy"] == "report_only"
+    assert payload["connections"][0]["confirm_remote_processing"] is True
+    assert "password_env" not in payload["connections"][0]
+    assert "LAB_X_SFTP_PASSWORD" not in response.text
+
+
 def test_reports_endpoint_lists_files(tmp_path: Path):
     db_path = tmp_path / "integration.db"
     SQLiteStore(db_path).initialize()
@@ -225,6 +275,7 @@ def test_dashboard_html_contains_required_dom_hooks(tmp_path: Path):
         "limit-filter",
         "operational-alerts",
         "connections-list",
+        "config-list",
         "events-body",
         "event-detail",
         "event-detail-body",
@@ -251,6 +302,7 @@ def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
     assert 'params.set("date_to", dateTo)' in javascript
     assert 'getJson("/suppliers")' in javascript
     assert 'getJson("/connections")' in javascript
+    assert 'getJson("/config/summary")' in javascript
     assert 'getJson("/reports")' in javascript
     assert 'href = `/reports/${encodeURIComponent(report.name || "")}`' in javascript
     assert "showEventDetail" in javascript
@@ -261,6 +313,7 @@ def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
     assert "orderNumberForEvent" in javascript
     assert "fetchConnections" in javascript
     assert "filterEventsByConnection" in javascript
+    assert "fetchConfigSummary" in javascript
     assert "fetch(" in javascript
     assert "method:" not in javascript
 

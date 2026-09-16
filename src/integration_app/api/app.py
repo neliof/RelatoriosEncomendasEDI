@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from integration_app.api.read_models import (
     EventFilters,
     fetch_connections,
+    fetch_config_summary,
     fetch_event_detail,
     fetch_events,
     fetch_summary,
@@ -17,7 +18,7 @@ from integration_app.api.read_models import (
 )
 
 
-def create_app(db_path: Path, report_dir: Path) -> FastAPI:
+def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config.yaml")) -> FastAPI:
     app = FastAPI(title="Relatorios Encomendas EDI EF API")
     static_dir = Path(__file__).with_name("static")
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
@@ -61,6 +62,10 @@ def create_app(db_path: Path, report_dir: Path) -> FastAPI:
     @app.get("/connections")
     def connections() -> dict[str, object]:
         return {"items": fetch_connections(db_path)}
+
+    @app.get("/config/summary")
+    def config_summary() -> dict[str, object]:
+        return fetch_config_summary(config_path)
 
     @app.get("/suppliers")
     def suppliers() -> dict[str, object]:

@@ -10,5 +10,6 @@ def test_api_cli_defaults_to_local_paths():
 
     assert args.db == Path("data/integration.db")
     assert args.reports == Path("reports")
+    assert args.config == Path("config.yaml")
     assert args.host == "127.0.0.1"
     assert args.port == 8000
