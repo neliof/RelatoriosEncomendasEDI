@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from pathlib import Path
 
+import yaml
 from fastapi.testclient import TestClient
 
 from integration_app.api.app import create_app
@@ -177,6 +178,38 @@ connections:
     assert "LAB_X_SFTP_PASSWORD" not in response.text
 
 
+def test_patch_config_connection_updates_existing_connection(tmp_path: Path):
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    config_path = _write_config(tmp_path)
+    app = create_app(db_path, tmp_path / "reports", config_path=config_path)
+
+    response = TestClient(app).patch(
+        "/config/connections/laboratorio_x",
+        json={"enabled": False},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["updated"] is True
+    updated = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    assert updated["connections"][0]["enabled"] is False
+
+
+def test_patch_config_connection_rejects_sensitive_fields(tmp_path: Path):
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    config_path = _write_config(tmp_path)
+    app = create_app(db_path, tmp_path / "reports", config_path=config_path)
+
+    response = TestClient(app).patch(
+        "/config/connections/laboratorio_x",
+        json={"host": "evil.example"},
+    )
+
+    assert response.status_code == 400
+
+
 def test_reports_endpoint_lists_files(tmp_path: Path):
     db_path = tmp_path / "integration.db"
     SQLiteStore(db_path).initialize()
@@ -337,3 +370,34 @@ def test_dashboard_assets_include_operational_alert_styles(tmp_path: Path):
     assert "failed_count" in javascript
     assert "duplicate_count" in javascript
     assert "pending_count" in javascript
+
+
+def _write_config(tmp_path: Path) -> Path:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(
+        """
+app:
+  database_path: data/integration.db
+  log_dir: logs
+  report_dir: reports
+defaults:
+  stable_after_seconds: 30
+  confirmation_timeout_minutes: 120
+connections:
+  - name: laboratorio_x
+    enabled: true
+    flow_type: generic
+    protocol: sftp
+    host: sftp.example.test
+    port: 22
+    username: lab_user
+    password_env: LAB_X_PASSWORD
+    source_dir: ./inbox
+    remote_dir: /inbound
+    file_pattern: "*.edi"
+    duplicate_policy: report_only
+    confirm_remote_processing: true
+""".lstrip(),
+        encoding="utf-8",
+    )
+    return config_path

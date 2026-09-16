@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from integration_app.api.config_management import ConfigUpdateError, update_connection_config
 from integration_app.api.read_models import (
     EventFilters,
     fetch_connections,
@@ -66,6 +67,16 @@ def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config
     @app.get("/config/summary")
     def config_summary() -> dict[str, object]:
         return fetch_config_summary(config_path)
+
+    @app.patch("/config/connections/{connection_name}")
+    def update_config_connection(
+        connection_name: str,
+        updates: dict[str, object] = Body(...),
+    ) -> dict[str, object]:
+        try:
+            return update_connection_config(config_path, connection_name, updates)
+        except ConfigUpdateError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
     @app.get("/suppliers")
     def suppliers() -> dict[str, object]:
