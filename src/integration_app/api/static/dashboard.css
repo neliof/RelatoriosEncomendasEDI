@@ -83,6 +83,42 @@ button {
   margin-bottom: 16px;
 }
 
+.alerts {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.alerts[hidden] {
+  display: none;
+}
+
+.alert-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  font-size: 14px;
+  padding: 12px;
+}
+
+.alert-item strong {
+  display: block;
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.alert-item.failed {
+  border-color: #f0b7ae;
+  color: var(--danger);
+}
+
+.alert-item.duplicate,
+.alert-item.pending {
+  border-color: #e6c76c;
+  color: var(--warning);
+}
+
 .metric-card,
 .panel {
   background: var(--panel);
@@ -219,6 +255,7 @@ th {
   }
 
   .metrics,
+  .alerts,
   .grid {
     grid-template-columns: 1fr;
   }

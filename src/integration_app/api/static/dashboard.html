@@ -24,6 +24,7 @@
         <article class="metric-card"><span>Duplicados</span><strong id="metric-duplicate">-</strong></article>
         <article class="metric-card"><span>Falhados</span><strong id="metric-failed">-</strong></article>
       </section>
+      <section id="operational-alerts" class="alerts" aria-live="polite" hidden></section>
 
       <section class="panel">
         <div class="panel-header">
@@ -38,6 +39,8 @@
               <option value="detected">Detectados</option>
             </select>
             <input id="connection-filter" type="search" placeholder="Ligacao" aria-label="Ligacao">
+            <input id="date-from-filter" type="date" aria-label="Data inicial">
+            <input id="date-to-filter" type="date" aria-label="Data final">
             <input id="limit-filter" type="number" min="1" max="500" value="100" aria-label="Limite">
           </form>
         </div>

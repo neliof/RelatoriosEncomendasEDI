@@ -111,7 +111,10 @@ def test_dashboard_html_contains_required_dom_hooks(tmp_path: Path):
         "event-filters",
         "status-filter",
         "connection-filter",
+        "date-from-filter",
+        "date-to-filter",
         "limit-filter",
+        "operational-alerts",
         "events-body",
         "suppliers-list",
         "reports-list",
@@ -129,7 +132,25 @@ def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
 
     assert 'getJson("/summary")' in javascript
     assert "getJson(`/events?" in javascript
+    assert 'params.set("date_from", dateFrom)' in javascript
+    assert 'params.set("date_to", dateTo)' in javascript
     assert 'getJson("/suppliers")' in javascript
     assert 'getJson("/reports")' in javascript
     assert "fetch(" in javascript
     assert "method:" not in javascript
+
+
+def test_dashboard_assets_include_operational_alert_styles(tmp_path: Path):
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    app = create_app(db_path, tmp_path / "reports")
+
+    css = TestClient(app).get("/static/dashboard.css").text
+    javascript = TestClient(app).get("/static/dashboard.js").text
+
+    assert ".alerts" in css
+    assert ".alert-item.failed" in css
+    assert "renderOperationalAlerts" in javascript
+    assert "failed_count" in javascript
+    assert "duplicate_count" in javascript
+    assert "pending_count" in javascript

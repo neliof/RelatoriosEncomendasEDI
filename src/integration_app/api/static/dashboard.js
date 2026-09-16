@@ -26,6 +26,7 @@ async function fetchSummary() {
     setMetric("metric-pending", summary.pending_count);
     setMetric("metric-duplicate", summary.duplicate_count);
     setMetric("metric-failed", summary.failed_count);
+    renderOperationalAlerts(summary);
   } catch (error) {
     document.getElementById("last-updated").textContent = `Erro no resumo: ${error.message}`;
   }
@@ -35,9 +36,13 @@ async function fetchEvents() {
   const params = new URLSearchParams();
   const status = document.getElementById("status-filter").value;
   const connection = document.getElementById("connection-filter").value.trim();
+  const dateFrom = document.getElementById("date-from-filter").value;
+  const dateTo = document.getElementById("date-to-filter").value;
   const limit = document.getElementById("limit-filter").value;
   if (status) params.set("status", status);
   if (connection) params.set("connection_name", connection);
+  if (dateFrom) params.set("date_from", dateFrom);
+  if (dateTo) params.set("date_to", dateTo);
   if (limit) params.set("limit", limit);
 
   try {
@@ -82,6 +87,23 @@ async function getJson(url) {
 
 function setMetric(id, value) {
   document.getElementById(id).textContent = value ?? "-";
+}
+
+function renderOperationalAlerts(summary) {
+  const alerts = [
+    { count: summary.failed_count, label: "Falhas", className: "failed" },
+    { count: summary.duplicate_count, label: "Duplicados", className: "duplicate" },
+    { count: summary.pending_count, label: "Pendentes", className: "pending" },
+  ].filter((item) => Number(item.count || 0) > 0);
+  const container = document.getElementById("operational-alerts");
+  container.innerHTML = "";
+  container.hidden = alerts.length === 0;
+  for (const alert of alerts) {
+    const item = document.createElement("div");
+    item.className = `alert-item ${alert.className}`;
+    item.innerHTML = `<strong>${alert.count}</strong><span>${alert.label} requerem atencao.</span>`;
+    container.appendChild(item);
+  }
 }
 
 function renderEvents() {
