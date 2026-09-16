@@ -9,6 +9,7 @@ __pycache__/
 data/
 logs/
 reports/
+secrets/
 tmp/
 *.db
 *.sqlite

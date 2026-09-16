@@ -4,6 +4,7 @@ param(
     [string]$GenerixStorageRoot = "C:\Users\TI\Documents\Influe-Generix\Bat\storage\cpip_20122611437260",
     [string]$ReportDir = "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\reports",
     [string]$LogDir = "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\logs",
+    [string]$SecretDir = "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\secrets",
     [string]$PythonExe = "",
     [int]$RetentionDays = 30,
     [switch]$DisableCleanup
@@ -20,6 +21,17 @@ Start-Transcript -Path $TranscriptPath -Append | Out-Null
 try {
     Set-Location $ProjectRoot
     $env:PYTHONPATH = "src"
+
+    $PasswordEnvName = "PRIMEIRA_LIGACAO_FTP_PASSWORD"
+    $SecretPath = Join-Path $SecretDir "$PasswordEnvName.secret"
+    if (-not (Get-Item -Path "Env:$PasswordEnvName" -ErrorAction SilentlyContinue) -and (Test-Path -LiteralPath $SecretPath)) {
+        $securePassword = Get-Content -Path $SecretPath -Raw | ConvertTo-SecureString
+        $plainPassword = [System.Net.NetworkCredential]::new("", $securePassword).Password
+        Set-Item -Path "Env:$PasswordEnvName" -Value $plainPassword
+        $plainPassword = $null
+        $securePassword.Dispose()
+    }
+
     if (-not $PythonExe) {
         $VenvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
         if (Test-Path $VenvPython) {

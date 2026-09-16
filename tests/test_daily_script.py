@@ -85,3 +85,23 @@ def test_install_scheduled_task_dry_run_describes_interval_task():
     assert "run-daily.ps1" in result.stdout
     assert "Every 10 minute(s)" in result.stdout
     assert "RunLevel: Limited" in result.stdout
+
+
+def test_daily_script_loads_dpapi_secret_before_running_python():
+    script = Path("scripts/run-daily.ps1")
+
+    content = script.read_text(encoding="utf-8")
+
+    assert "$SecretDir" in content
+    assert "$PasswordEnvName.secret" in content
+    assert "ConvertTo-SecureString" in content
+    assert "NetworkCredential" in content
+    assert "Set-Item -Path \"Env:$PasswordEnvName\"" in content
+
+
+def test_gitignore_excludes_local_secrets():
+    gitignore = Path(".gitignore")
+
+    content = gitignore.read_text(encoding="utf-8")
+
+    assert "secrets/" in content

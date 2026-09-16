@@ -34,3 +34,25 @@ def test_set_ftp_password_user_script_has_safe_dry_run():
     assert "PRIMEIRA_LIGACAO_FTP_PASSWORD" in result.stdout
     assert "Target: User environment" in result.stdout
     assert "DryRun: no password was requested or stored." in result.stdout
+
+
+def test_set_ftp_password_secret_script_has_safe_dry_run():
+    result = subprocess.run(
+        [
+            "powershell.exe",
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-File",
+            "scripts/set-ftp-password-secret.ps1",
+            "-DryRun",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0
+    assert "PRIMEIRA_LIGACAO_FTP_PASSWORD.secret" in result.stdout
+    assert "Target: DPAPI user secret file" in result.stdout
+    assert "DryRun: no password was requested or stored." in result.stdout

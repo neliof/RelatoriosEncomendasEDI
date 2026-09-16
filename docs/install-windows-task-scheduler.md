@@ -7,9 +7,17 @@
 3. Activar ambiente: `.venv\Scripts\Activate.ps1`.
 4. Instalar dependencias: `python -m pip install -e .[dev]`.
 5. Copiar `config.example.yaml` para `config.yaml`.
-6. Definir variaveis de ambiente das passwords usadas no YAML.
+6. Configurar a password FTP usada no YAML.
 
-Para gravar a password FTP no ambiente do utilizador Windows sem a escrever no `config.yaml`:
+Opcao recomendada: gravar a password num ficheiro secret DPAPI do Windows, protegido pelo utilizador actual:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\set-ftp-password-secret.ps1"
+```
+
+Este comando cria `secrets\PRIMEIRA_LIGACAO_FTP_PASSWORD.secret`. A pasta `secrets/` esta ignorada pelo git. O `run-daily.ps1` carrega este secret apenas para o processo da tarefa agendada quando a variavel `PRIMEIRA_LIGACAO_FTP_PASSWORD` nao existir.
+
+Alternativa: gravar a password FTP no ambiente do utilizador Windows:
 
 ```powershell
 powershell.exe -ExecutionPolicy Bypass -File "C:\Users\TI\Desktop\RelatoriosEncomendasEDI_EF\scripts\set-ftp-password-user.ps1"
@@ -33,6 +41,7 @@ O script:
 
 - usa `.venv\Scripts\python.exe` quando existir;
 - define `PYTHONPATH=src`;
+- carrega `secrets\PRIMEIRA_LIGACAO_FTP_PASSWORD.secret`, se existir e a variavel de ambiente ainda nao estiver definida;
 - executa `run-once --config config.yaml`;
 - executa `generix-report`;
 - grava transcript em `logs\run-daily-YYYYMMDD-HHMMSS.log`;
