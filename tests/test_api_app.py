@@ -377,7 +377,11 @@ def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
     assert "toggleConnectionEnabled" in javascript
     assert "saveConnectionSettings" in javascript
     assert "collectConnectionSettings" in javascript
+    assert "validateConnectionSettings" in javascript
+    assert "showConfigMessage" in javascript
     assert 'method: "PATCH"' in javascript
+    assert "A guardar..." in javascript
+    assert "Configuracao guardada. Backup criado." in javascript
     assert 'name="source_dir"' in javascript
     assert 'name="remote_dir"' in javascript
     assert 'name="file_pattern"' in javascript
@@ -402,6 +406,8 @@ def test_dashboard_assets_include_operational_alert_styles(tmp_path: Path):
     assert ".config-action" in css
     assert ".config-form" in css
     assert ".config-field" in css
+    assert ".config-message" in css
+    assert ".config-message.success" in css
     assert ".event-row.duplicate" in css
     assert ".event-row.pending" in css
     assert "renderOperationalAlerts" in javascript

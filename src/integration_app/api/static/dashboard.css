@@ -289,6 +289,20 @@ th {
   min-height: auto;
 }
 
+.config-message {
+  align-self: center;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.config-message.success {
+  color: var(--success);
+}
+
+.config-message.error {
+  color: var(--danger);
+}
+
 .connection-list {
   display: grid;
   gap: 8px;

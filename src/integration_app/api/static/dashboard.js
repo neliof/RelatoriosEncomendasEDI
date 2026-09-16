@@ -120,6 +120,7 @@ function renderConfigSummary() {
             Confirmar processamento remoto
           </label>
           <button type="submit">Guardar</button>
+          <span class="config-message" aria-live="polite"></span>
         </form>
       </div>
       <button class="config-action" type="button">${connection.enabled ? "Desactivar" : "Activar"}</button>
@@ -141,11 +142,26 @@ async function toggleConnectionEnabled(connectionName, enabled) {
 
 async function saveConnectionSettings(event, connectionName) {
   event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const settings = collectConnectionSettings(form);
+  const validationError = validateConnectionSettings(settings);
+  if (validationError) {
+    showConfigMessage(form, validationError, "error");
+    return;
+  }
   try {
-    await patchJson(`/config/connections/${encodeURIComponent(connectionName)}`, collectConnectionSettings(event.currentTarget));
+    button.disabled = true;
+    button.textContent = "A guardar...";
+    await patchJson(`/config/connections/${encodeURIComponent(connectionName)}`, settings);
     await fetchConfigSummary();
+    const refreshed = findConfigForm(connectionName);
+    showConfigMessage(refreshed || form, "Configuracao guardada. Backup criado.", "success");
   } catch (error) {
-    showError("config-error", error);
+    showConfigMessage(form, `Erro ao guardar: ${error.message}`, "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Guardar";
   }
 }
 
@@ -158,6 +174,33 @@ function collectConnectionSettings(form) {
     duplicate_policy: String(data.get("duplicate_policy") || ""),
     confirm_remote_processing: data.has("confirm_remote_processing"),
   };
+}
+
+function validateConnectionSettings(settings) {
+  if (!settings.source_dir.trim() || !settings.remote_dir.trim() || !settings.file_pattern.trim()) {
+    return "Origem, destino e padrao sao obrigatorios.";
+  }
+  if (!["report_only", "move_to_duplicates"].includes(settings.duplicate_policy)) {
+    return "Politica de duplicados invalida.";
+  }
+  return "";
+}
+
+function showConfigMessage(form, message, kind) {
+  const element = form.querySelector(".config-message");
+  if (!element) return;
+  element.textContent = message;
+  element.className = `config-message ${kind}`;
+}
+
+function findConfigForm(connectionName) {
+  const forms = document.querySelectorAll(".config-form");
+  for (const form of forms) {
+    if (form.parentElement?.querySelector("strong")?.textContent === connectionName) {
+      return form;
+    }
+  }
+  return null;
 }
 
 async function fetchConnections() {
