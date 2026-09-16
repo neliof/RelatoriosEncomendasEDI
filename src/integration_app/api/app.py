@@ -3,12 +3,20 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import FastAPI, Query
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from integration_app.api.read_models import EventFilters, fetch_events, fetch_summary, fetch_suppliers, list_reports
 
 
 def create_app(db_path: Path, report_dir: Path) -> FastAPI:
     app = FastAPI(title="Relatorios Encomendas EDI EF API")
+    static_dir = Path(__file__).with_name("static")
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+    @app.get("/")
+    def dashboard() -> FileResponse:
+        return FileResponse(static_dir / "dashboard.html")
 
     @app.get("/health")
     def health() -> dict[str, object]:

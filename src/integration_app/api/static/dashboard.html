@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-PT">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Relatorios Encomendas EDI EF</title>
+    <link rel="stylesheet" href="/static/dashboard.css">
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>Relatorios Encomendas EDI EF</h1>
+          <p id="last-updated">A carregar dados...</p>
+        </div>
+        <button id="refresh-button" type="button">Actualizar</button>
+      </header>
+
+      <section class="metrics" aria-label="Resumo operacional">
+        <article class="metric-card"><span>Total</span><strong id="metric-total">-</strong></article>
+        <article class="metric-card"><span>Enviados</span><strong id="metric-sent">-</strong></article>
+        <article class="metric-card"><span>Confirmados</span><strong id="metric-confirmed">-</strong></article>
+        <article class="metric-card"><span>Pendentes</span><strong id="metric-pending">-</strong></article>
+        <article class="metric-card"><span>Duplicados</span><strong id="metric-duplicate">-</strong></article>
+        <article class="metric-card"><span>Falhados</span><strong id="metric-failed">-</strong></article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Eventos recentes</h2>
+          <form id="event-filters" class="filters">
+            <select id="status-filter" aria-label="Estado">
+              <option value="">Todos</option>
+              <option value="sent">Enviados</option>
+              <option value="confirmed">Confirmados</option>
+              <option value="duplicate">Duplicados</option>
+              <option value="failed">Falhados</option>
+              <option value="detected">Detectados</option>
+            </select>
+            <input id="connection-filter" type="search" placeholder="Ligacao" aria-label="Ligacao">
+            <input id="limit-filter" type="number" min="1" max="500" value="100" aria-label="Limite">
+          </form>
+        </div>
+        <p id="events-error" class="notice" hidden></p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Ligacao</th>
+                <th>Protocolo</th>
+                <th>Estado</th>
+                <th>Confirmacao</th>
+                <th>Ficheiro</th>
+                <th>Erro</th>
+              </tr>
+            </thead>
+            <tbody id="events-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="panel">
+          <h2>Fornecedores</h2>
+          <p id="suppliers-error" class="notice" hidden></p>
+          <div id="suppliers-list" class="list"></div>
+        </article>
+        <article class="panel">
+          <h2>Relatorios</h2>
+          <p id="reports-error" class="notice" hidden></p>
+          <div id="reports-list" class="list"></div>
+        </article>
+      </section>
+    </main>
+    <script src="/static/dashboard.js" defer></script>
+  </body>
+</html>
