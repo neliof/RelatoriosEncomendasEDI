@@ -100,17 +100,32 @@ function renderConfigSummary() {
   }
   for (const connection of connections) {
     const row = document.createElement("div");
-    row.className = "list-row";
+    row.className = "list-row config-row";
     row.innerHTML = `
       <div>
         <strong>${escapeHtml(connection.name || "")}</strong>
         <small>${escapeHtml(connection.protocol || "")} | ${connection.enabled ? "Activo" : "Inactivo"} | ${escapeHtml(connection.file_pattern || "")}</small>
-        <small>${escapeHtml(connection.source_dir || "")} -> ${escapeHtml(connection.remote_dir || "")}</small>
-        <small>${escapeHtml(connection.duplicate_policy || "")} | Confirmacao: ${connection.confirm_remote_processing ? "sim" : "nao"}</small>
+        <form class="config-form">
+          <label class="config-field">Origem <input name="source_dir" value="${escapeHtml(connection.source_dir || "")}"></label>
+          <label class="config-field">Destino <input name="remote_dir" value="${escapeHtml(connection.remote_dir || "")}"></label>
+          <label class="config-field">Padrao <input name="file_pattern" value="${escapeHtml(connection.file_pattern || "")}"></label>
+          <label class="config-field">Duplicados
+            <select name="duplicate_policy">
+              <option value="report_only"${connection.duplicate_policy === "report_only" ? " selected" : ""}>Reportar</option>
+              <option value="move_to_duplicates"${connection.duplicate_policy === "move_to_duplicates" ? " selected" : ""}>Mover</option>
+            </select>
+          </label>
+          <label class="config-field config-checkbox">
+            <input name="confirm_remote_processing" type="checkbox"${connection.confirm_remote_processing ? " checked" : ""}>
+            Confirmar processamento remoto
+          </label>
+          <button type="submit">Guardar</button>
+        </form>
       </div>
       <button class="config-action" type="button">${connection.enabled ? "Desactivar" : "Activar"}</button>
     `;
     row.querySelector(".config-action").addEventListener("click", () => toggleConnectionEnabled(connection.name, !connection.enabled));
+    row.querySelector(".config-form").addEventListener("submit", (event) => saveConnectionSettings(event, connection.name));
     container.appendChild(row);
   }
 }
@@ -122,6 +137,27 @@ async function toggleConnectionEnabled(connectionName, enabled) {
   } catch (error) {
     showError("config-error", error);
   }
+}
+
+async function saveConnectionSettings(event, connectionName) {
+  event.preventDefault();
+  try {
+    await patchJson(`/config/connections/${encodeURIComponent(connectionName)}`, collectConnectionSettings(event.currentTarget));
+    await fetchConfigSummary();
+  } catch (error) {
+    showError("config-error", error);
+  }
+}
+
+function collectConnectionSettings(form) {
+  const data = new FormData(form);
+  return {
+    source_dir: String(data.get("source_dir") || ""),
+    remote_dir: String(data.get("remote_dir") || ""),
+    file_pattern: String(data.get("file_pattern") || ""),
+    duplicate_policy: String(data.get("duplicate_policy") || ""),
+    confirm_remote_processing: data.has("confirm_remote_processing"),
+  };
 }
 
 async function fetchConnections() {

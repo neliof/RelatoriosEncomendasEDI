@@ -196,6 +196,33 @@ def test_patch_config_connection_updates_existing_connection(tmp_path: Path):
     assert updated["connections"][0]["enabled"] is False
 
 
+def test_patch_config_connection_updates_allowed_operational_fields(tmp_path: Path):
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    config_path = _write_config(tmp_path)
+    app = create_app(db_path, tmp_path / "reports", config_path=config_path)
+
+    response = TestClient(app).patch(
+        "/config/connections/laboratorio_x",
+        json={
+            "source_dir": "C:\\Edi\\Send",
+            "remote_dir": "/FACT/Aurovitas/",
+            "file_pattern": "*.XML",
+            "duplicate_policy": "move_to_duplicates",
+            "confirm_remote_processing": False,
+        },
+    )
+
+    assert response.status_code == 200
+    updated = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    connection = updated["connections"][0]
+    assert connection["source_dir"] == "C:\\Edi\\Send"
+    assert connection["remote_dir"] == "/FACT/Aurovitas/"
+    assert connection["file_pattern"] == "*.XML"
+    assert connection["duplicate_policy"] == "move_to_duplicates"
+    assert connection["confirm_remote_processing"] is False
+
+
 def test_patch_config_connection_rejects_sensitive_fields(tmp_path: Path):
     db_path = tmp_path / "integration.db"
     SQLiteStore(db_path).initialize()
@@ -348,7 +375,14 @@ def test_dashboard_javascript_uses_existing_readonly_endpoints(tmp_path: Path):
     assert "filterEventsByConnection" in javascript
     assert "fetchConfigSummary()" in javascript
     assert "toggleConnectionEnabled" in javascript
+    assert "saveConnectionSettings" in javascript
+    assert "collectConnectionSettings" in javascript
     assert 'method: "PATCH"' in javascript
+    assert 'name="source_dir"' in javascript
+    assert 'name="remote_dir"' in javascript
+    assert 'name="file_pattern"' in javascript
+    assert 'name="duplicate_policy"' in javascript
+    assert 'name="confirm_remote_processing"' in javascript
     assert "fetch(" in javascript
 
 
@@ -366,6 +400,8 @@ def test_dashboard_assets_include_operational_alert_styles(tmp_path: Path):
     assert ".connection-row.failed" in css
     assert ".connection-row.pending" in css
     assert ".config-action" in css
+    assert ".config-form" in css
+    assert ".config-field" in css
     assert ".event-row.duplicate" in css
     assert ".event-row.pending" in css
     assert "renderOperationalAlerts" in javascript

@@ -256,6 +256,39 @@ th {
   justify-self: end;
 }
 
+.config-row {
+  align-items: start;
+}
+
+.config-form {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(150px, 1fr)) auto;
+  margin-top: 10px;
+}
+
+.config-field {
+  color: var(--muted);
+  display: grid;
+  font-size: 12px;
+  gap: 4px;
+}
+
+.config-field input,
+.config-field select {
+  min-width: 0;
+  padding: 0 8px;
+}
+
+.config-checkbox {
+  align-items: center;
+  grid-template-columns: auto 1fr;
+}
+
+.config-checkbox input {
+  min-height: auto;
+}
+
 .connection-list {
   display: grid;
   gap: 8px;
@@ -375,6 +408,10 @@ a,
 
   .filters {
     display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .config-form {
     grid-template-columns: 1fr;
   }
 }
