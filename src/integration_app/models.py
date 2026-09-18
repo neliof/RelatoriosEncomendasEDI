@@ -46,11 +46,11 @@ class ConnectionConfig:
     schedule_minute: int = 0
 
     def resolve_password(self) -> str | None:
+        if self.password_env is not None:
+            return os.environ.get(self.password_env)
         if self.password is not None:
             return self.password
-        if self.password_env is None:
-            return None
-        return os.environ.get(self.password_env)
+        return None
 
 
 @dataclass(frozen=True)
