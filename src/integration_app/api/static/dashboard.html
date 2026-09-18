@@ -322,6 +322,25 @@
 
             <section class="panel">
               <div class="panel-header">
+                <h2>Configurações Gerais</h2>
+                <p class="panel-subtitle">Definições globais da aplicação</p>
+              </div>
+              <form id="general-config-form" class="config-form">
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="generix-storage">Localização Generix Storage</label>
+                    <input id="generix-storage" name="generix_storage_root" type="text" placeholder="C:\Users\TI\Documents\Influe-Generix">
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Guardar Configurações</button>
+                  <span id="general-config-message" class="form-message" aria-live="polite"></span>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
                 <h2>Ligações Configuradas</h2>
                 <p class="panel-subtitle">Gerir ligações existentes</p>
               </div>

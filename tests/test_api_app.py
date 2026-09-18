@@ -272,6 +272,59 @@ def test_post_config_connection_creates_connection_with_admin_password(tmp_path:
     assert [item["name"] for item in updated["connections"]] == ["laboratorio_x", "nova_ligacao"]
 
 
+def test_delete_config_connection_requires_admin_password(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("INTEGRATION_ADMIN_PASSWORD", "admin-secret")
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    config_path = _write_config(tmp_path)
+    app = create_app(db_path, tmp_path / "reports", config_path=config_path)
+
+    response = TestClient(app).request(
+        "DELETE",
+        "/config/connections/laboratorio_x",
+        json={"confirm_name": "laboratorio_x"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_delete_config_connection_rejects_mismatched_confirmation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("INTEGRATION_ADMIN_PASSWORD", "admin-secret")
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    config_path = _write_config(tmp_path)
+    app = create_app(db_path, tmp_path / "reports", config_path=config_path)
+
+    response = TestClient(app).request(
+        "DELETE",
+        "/config/connections/laboratorio_x",
+        json={"confirm_name": "outra"},
+        headers={"X-Admin-Password": "admin-secret"},
+    )
+
+    assert response.status_code == 400
+
+
+def test_delete_config_connection_removes_connection_with_admin_password(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("INTEGRATION_ADMIN_PASSWORD", "admin-secret")
+    db_path = tmp_path / "integration.db"
+    SQLiteStore(db_path).initialize()
+    config_path = _write_config(tmp_path)
+    app = create_app(db_path, tmp_path / "reports", config_path=config_path)
+
+    response = TestClient(app).request(
+        "DELETE",
+        "/config/connections/laboratorio_x",
+        json={"confirm_name": "laboratorio_x"},
+        headers={"X-Admin-Password": "admin-secret"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["deleted"] is True
+    updated = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    assert updated["connections"] == []
+
+
 def test_reports_endpoint_lists_files(tmp_path: Path):
     db_path = tmp_path / "integration.db"
     SQLiteStore(db_path).initialize()

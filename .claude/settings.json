@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from pathlib import Path; from integration_app.api.app import create_app; app=create_app\\(Path\\('data/integration.db'\\), Path\\('reports'\\)\\); print\\(f'✓ API Factory OK: {app.title}'\\)\")",
+      "Bash(PYTHONPATH=src python -c \"from pathlib import Path; from integration_app.api.app import create_app; app=create_app\\(Path\\('data/integration.db'\\), Path\\('reports'\\)\\); print\\(f'✓ API Factory OK: {app.title}'\\)\")",
+      "Bash(PYTHONPATH=src python -c \"from pathlib import Path; from integration_app.api.app import create_app; app=create_app\\(Path\\('data/integration.db'\\), Path\\('reports'\\)\\); print\\('OK - API app loaded:', app.title\\)\")",
+      "Bash(curl -s http://127.0.0.1:8000/health)",
+      "Bash(PYTHONPATH=src python -c \"from pathlib import Path; from integration_app.api.app import create_app; app=create_app\\(Path\\('data/integration.db'\\), Path\\('reports'\\)\\); print\\('API OK'\\); print\\('Endpoints:', [r.path for r in app.routes if 'clients' in r.path or 'suppliers' in r.path]\\)\")",
+      "Bash(curl -s http://127.0.0.1:8000/clients)",
+      "Bash(PYTHONPATH=src python -m integration_app.api)",
+      "Bash(timeout 3 bash -c 'PYTHONPATH=src python -m integration_app.api 2>&1')",
+      "Bash(PYTHONPATH=src python -c \"from integration_app.api.read_models import fetch_clients; print\\('fetch_clients OK'\\)\")",
+      "Bash(PYTHONPATH=src python -c \"from integration_app.api.app import create_app; from pathlib import Path; app = create_app\\(Path\\('data/integration.db'\\), Path\\('reports'\\)\\); routes = [r.path for r in app.routes]; print\\('Routes com clients:', [r for r in routes if 'clients' in r or 'suppliers' in r]\\)\")",
+      "Bash(PYTHONPATH=src python -c ' *)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | ForEach-Object { Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue | Stop-Process -Force 2>$null }; \"Killed\")",
+      "Bash(PYTHONPATH=src python -c \"from integration_app.api.app import create_app; from pathlib import Path; app = create_app\\(Path\\('data/integration.db'\\), Path\\('reports'\\)\\); print\\('API OK'\\); routes = [r.path for r in app.routes if 'config' in r.path]; print\\('Config routes:', sorted\\(set\\(routes\\)\\)\\)\")"
+    ]
+  }
+}

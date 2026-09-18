@@ -10,6 +10,7 @@ class AppPaths:
     database_path: Path
     log_dir: Path
     report_dir: Path
+    generix_storage_root: Path | None = None
 
 
 @dataclass(frozen=True)

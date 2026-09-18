@@ -131,10 +131,13 @@ def fetch_connections(db_path: Path) -> list[dict[str, object]]:
 
 def fetch_config_summary(config_path: Path) -> dict[str, object]:
     if not config_path.exists():
-        return {"config_exists": False, "connections": []}
+        return {"config_exists": False, "app": {}, "connections": []}
     config = load_config(config_path)
     return {
         "config_exists": True,
+        "app": {
+            "generix_storage_root": str(config.app.generix_storage_root) if config.app.generix_storage_root else None,
+        },
         "connections": [
             {
                 "name": connection.name,

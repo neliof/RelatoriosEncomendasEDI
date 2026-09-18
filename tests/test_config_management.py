@@ -5,7 +5,12 @@ from pathlib import Path
 import pytest
 import yaml
 
-from integration_app.api.config_management import ConfigUpdateError, add_connection_config, update_connection_config
+from integration_app.api.config_management import (
+    ConfigUpdateError,
+    add_connection_config,
+    delete_connection_config,
+    update_connection_config,
+)
 
 
 def test_update_connection_config_creates_backup_and_updates_allowed_fields(tmp_path: Path):
@@ -128,6 +133,42 @@ def test_add_connection_config_rejects_duplicate_name_without_changing_file(tmp_
         )
 
     assert exc_info.value.status_code == 409
+    assert config_path.read_text(encoding="utf-8") == original_text
+
+
+def test_delete_connection_config_creates_backup_and_removes_connection(tmp_path: Path):
+    config_path = _write_config(tmp_path)
+    add_connection_config(
+        config_path,
+        {
+            "name": "nova_ligacao",
+            "protocol": "ftp",
+            "host": "ftp.example.test",
+            "port": 21,
+            "username": "ftp_user",
+            "source_dir": "./send",
+            "remote_dir": "/inbound",
+        },
+    )
+
+    result = delete_connection_config(config_path, "nova_ligacao")
+
+    assert result["connection_name"] == "nova_ligacao"
+    assert result["deleted"] is True
+    backups = list((tmp_path / "config.backups").glob("config-*.yaml"))
+    assert len(backups) == 2
+    updated = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    assert [item["name"] for item in updated["connections"]] == ["laboratorio_x"]
+
+
+def test_delete_connection_config_rejects_unknown_connection_without_changing_file(tmp_path: Path):
+    config_path = _write_config(tmp_path)
+    original_text = config_path.read_text(encoding="utf-8")
+
+    with pytest.raises(ConfigUpdateError) as exc_info:
+        delete_connection_config(config_path, "missing")
+
+    assert exc_info.value.status_code == 404
     assert config_path.read_text(encoding="utf-8") == original_text
 
 

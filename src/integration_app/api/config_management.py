@@ -121,6 +121,33 @@ def add_connection_config(config_path: Path, connection: dict[str, object]) -> d
     }
 
 
+def delete_connection_config(config_path: Path, connection_name: str) -> dict[str, object]:
+    config_path = Path(config_path)
+    if not config_path.exists():
+        raise ConfigUpdateError("Configuration file not found", status_code=404)
+
+    config = _load_yaml(config_path)
+    connections = config.get("connections")
+    if not isinstance(connections, list):
+        raise ConfigUpdateError("connections must be a list", status_code=400)
+
+    remaining = [
+        connection
+        for connection in connections
+        if not (isinstance(connection, dict) and connection.get("name") == connection_name)
+    ]
+    if len(remaining) == len(connections):
+        raise ConfigUpdateError("Connection not found", status_code=404)
+
+    config["connections"] = remaining
+    backup_path = _write_validated_config(config_path, config)
+    return {
+        "connection_name": connection_name,
+        "deleted": True,
+        "backup_path": str(backup_path),
+    }
+
+
 def _reject_unsupported_fields(updates: dict[str, object]) -> None:
     blocked = BLOCKED_FIELDS.intersection(updates)
     if blocked:
@@ -198,3 +225,27 @@ def _backup_config(config_path: Path) -> Path:
     backup_path = backup_dir / f"config-{timestamp}.yaml"
     shutil.copy2(config_path, backup_path)
     return backup_path
+
+
+def update_app_config(config_path: Path, updates: dict[str, object]) -> dict[str, object]:
+    config_path = Path(config_path)
+    if not config_path.exists():
+        raise ConfigUpdateError("Configuration file not found", status_code=404)
+
+    config = _load_yaml(config_path)
+    app_config = config.get("app")
+    if not isinstance(app_config, dict):
+        raise ConfigUpdateError("app section must be a mapping", status_code=400)
+
+    allowed_updates = {"generix_storage_root"}
+    for key in updates:
+        if key not in allowed_updates:
+            raise ConfigUpdateError(f"Field '{key}' not allowed in app config", status_code=400)
+
+    app_config.update(updates)
+    backup_path = _write_validated_config(config_path, config)
+    return {
+        "app_config": True,
+        "updated": True,
+        "backup_path": str(backup_path),
+    }

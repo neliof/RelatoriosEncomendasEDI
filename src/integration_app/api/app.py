@@ -11,6 +11,7 @@ from integration_app.api.config_management import (
     ConfigUpdateError,
     add_connection_config,
     delete_connection_config,
+    update_app_config,
     update_connection_config,
 )
 from integration_app.api.read_models import (
@@ -74,6 +75,12 @@ def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config
     @app.get("/config/summary")
     def config_summary() -> dict[str, object]:
         return fetch_config_summary(config_path)
+
+    @app.patch("/config/app")
+    def update_config_app(
+        updates: dict[str, object] = Body(...),
+    ) -> dict[str, object]:
+        return update_app_config(config_path, updates)
 
     @app.patch("/config/connections/{connection_name}")
     def update_config_connection(

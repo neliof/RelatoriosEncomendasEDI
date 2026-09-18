@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("event-filters").addEventListener("input", fetchEvents);
   document.getElementById("clear-filters-button").addEventListener("click", clearEventFilters);
   document.getElementById("new-connection-form").addEventListener("submit", saveNewConnection);
+  document.getElementById("general-config-form").addEventListener("submit", saveGeneralConfig);
   document.getElementById("event-detail-close").addEventListener("click", hideEventDetail);
   document.getElementById("detail-overlay").addEventListener("click", hideEventDetail);
   refreshAll();
@@ -145,9 +146,39 @@ async function fetchConfigSummary() {
     hideError("config-error");
     const payload = await getJson("/config/summary");
     state.config = payload;
+    renderGeneralConfig();
     renderConfigSummary();
   } catch (error) {
     showError("config-error", error);
+  }
+}
+
+function renderGeneralConfig() {
+  if (!state.config) return;
+  const input = document.getElementById("generix-storage");
+  if (input && state.config.app?.generix_storage_root) {
+    input.value = state.config.app.generix_storage_root;
+  }
+}
+
+async function saveGeneralConfig(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const generixStorage = document.getElementById("generix-storage").value.trim();
+
+  try {
+    button.disabled = true;
+    button.textContent = "A guardar...";
+
+    await patchJson("/config/app", { generix_storage_root: generixStorage || null });
+    await fetchConfigSummary();
+    showConfigMessage(form, "Configurações guardadas.", "success");
+  } catch (error) {
+    showConfigMessage(form, `Erro ao guardar: ${error.message}`, "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Guardar Configurações";
   }
 }
 

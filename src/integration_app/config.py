@@ -33,6 +33,7 @@ def load_config(path: str | Path) -> AppConfig:
             database_path=Path(_required_str(app_raw, "database_path")),
             log_dir=Path(_required_str(app_raw, "log_dir")),
             report_dir=Path(_required_str(app_raw, "report_dir")),
+            generix_storage_root=Path(_optional_str(app_raw, "generix_storage_root") or "") if _optional_str(app_raw, "generix_storage_root") else None,
         ),
         defaults=DefaultsConfig(
             stable_after_seconds=_required_int(defaults_raw, "stable_after_seconds"),
