@@ -17,8 +17,15 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("new-connection-form").addEventListener("submit", saveNewConnection);
   document.getElementById("general-config-form").addEventListener("submit", saveGeneralConfig);
   document.getElementById("clear-database-form").addEventListener("submit", clearDatabase);
+  document.getElementById("reports-apply-filters").addEventListener("click", fetchReportsSummary);
   document.getElementById("event-detail-close").addEventListener("click", hideEventDetail);
   document.getElementById("detail-overlay").addEventListener("click", hideEventDetail);
+
+  const today = new Date();
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  document.getElementById("reports-date-from").valueAsDate = startOfMonth;
+  document.getElementById("reports-date-to").valueAsDate = today;
+
   refreshAll();
 });
 
@@ -475,6 +482,87 @@ function showClearDatabaseMessage(message, kind) {
   const element = document.getElementById("clear-database-message");
   element.textContent = message;
   element.className = `form-message ${kind}`;
+}
+
+async function fetchReportsSummary() {
+  try {
+    const dateFrom = document.getElementById("reports-date-from").value;
+    const dateTo = document.getElementById("reports-date-to").value;
+    const flowType = document.getElementById("reports-type").value;
+
+    const summaryUrl = `/reports/summary?date_from=${dateFrom}&date_to=${dateTo}`;
+    const entitiesUrl = `/reports/by-entity?flow_type=${flowType}&date_from=${dateFrom}&date_to=${dateTo}`;
+
+    const [summary, entities] = await Promise.all([
+      getJson(summaryUrl),
+      getJson(entitiesUrl),
+    ]);
+
+    renderReportsSummary(summary);
+    renderReportsEntities(entities.items);
+    document.getElementById("reports-error").hidden = true;
+  } catch (error) {
+    showError("reports-error", error);
+  }
+}
+
+function renderReportsSummary(summary) {
+  const container = document.getElementById("reports-summary");
+  const total = summary.total || 0;
+  const sent = summary.sent || 0;
+  const failed = summary.failed || 0;
+  const successRate = total > 0 ? Math.round((sent / total) * 100) : 0;
+
+  container.innerHTML = `
+    <div style="background: var(--success-100); padding: 1rem; border-radius: 8px; text-align: center;">
+      <div style="font-size: 1.5rem; font-weight: bold; color: var(--success-600);">${sent}</div>
+      <div style="font-size: 0.85rem; color: var(--text-secondary);">Enviados</div>
+    </div>
+    <div style="background: var(--danger-100); padding: 1rem; border-radius: 8px; text-align: center;">
+      <div style="font-size: 1.5rem; font-weight: bold; color: var(--danger-600);">${failed}</div>
+      <div style="font-size: 0.85rem; color: var(--text-secondary);">Falhados</div>
+    </div>
+    <div style="background: var(--info-100); padding: 1rem; border-radius: 8px; text-align: center;">
+      <div style="font-size: 1.5rem; font-weight: bold; color: var(--info-600);">${total}</div>
+      <div style="font-size: 0.85rem; color: var(--text-secondary);">Total</div>
+    </div>
+    <div style="background: var(--neutral-100); padding: 1rem; border-radius: 8px; text-align: center;">
+      <div style="font-size: 1.5rem; font-weight: bold; color: var(--primary-600);">${successRate}%</div>
+      <div style="font-size: 0.85rem; color: var(--text-secondary);">Taxa Sucesso</div>
+    </div>
+  `;
+}
+
+function renderReportsEntities(entities) {
+  const tbody = document.getElementById("reports-entities-body");
+
+  if (!entities || entities.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-tertiary);">Nenhuma entidade encontrada</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = entities.map(entity => {
+    const keyName = entity.origin_name !== undefined ? "origin_name" : "supplier_name";
+    const name = entity[keyName] || "UNKNOWN";
+    const total = entity.total_files || 0;
+    const sent = entity.sent_count || 0;
+    const failed = entity.failed_count || 0;
+    const dup = entity.duplicate_count || 0;
+    const lastActivity = entity.last_activity ? new Date(entity.last_activity).toLocaleDateString("pt-PT") : "-";
+    const failureRate = total > 0 ? Math.round((failed / total) * 100) : 0;
+    const bgColor = failed > 0 ? "rgba(220, 38, 38, 0.05)" : "transparent";
+
+    return `
+      <tr style="border-bottom: 1px solid var(--border-color); background-color: ${bgColor};">
+        <td style="padding: 0.75rem; font-weight: 500;">${escapeHtml(name)}</td>
+        <td style="text-align: center; padding: 0.75rem;">${total}</td>
+        <td style="text-align: center; padding: 0.75rem; color: var(--success-600);">${sent}</td>
+        <td style="text-align: center; padding: 0.75rem; color: var(--danger-600); font-weight: ${failed > 0 ? "bold" : "normal"};">${failed}</td>
+        <td style="text-align: center; padding: 0.75rem; color: var(--warning-600);">${dup}</td>
+        <td style="padding: 0.75rem; font-size: 0.85rem; color: var(--text-secondary);">${lastActivity}</td>
+      </tr>
+    `;
+  }).join("");
 }
 
 async function saveConnectionSettings(event, connectionName) {

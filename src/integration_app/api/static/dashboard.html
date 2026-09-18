@@ -207,34 +207,54 @@
 
           <!-- Reports View -->
           <section id="view-reports" class="view">
-            <div class="grid-3">
-              <section class="panel">
-                <div class="panel-header">
-                  <h2>Clientes</h2>
-                  <p class="panel-subtitle">Agregação por cliente (received)</p>
-                </div>
-                <p id="clients-error" class="error-notice" hidden></p>
-                <div id="clients-list" class="list"></div>
-              </section>
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Relatórios por Entidade</h2>
+                <p class="panel-subtitle">Visão agregada de clientes e fornecedores</p>
+              </div>
 
-              <section class="panel">
-                <div class="panel-header">
-                  <h2>Fornecedores</h2>
-                  <p class="panel-subtitle">Agregação por fornecedor (sent)</p>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                <div class="form-field">
+                  <label for="reports-date-from">Data Início</label>
+                  <input id="reports-date-from" type="date">
                 </div>
-                <p id="suppliers-error" class="error-notice" hidden></p>
-                <div id="suppliers-list" class="list"></div>
-              </section>
+                <div class="form-field">
+                  <label for="reports-date-to">Data Fim</label>
+                  <input id="reports-date-to" type="date">
+                </div>
+                <div class="form-field">
+                  <label for="reports-type">Tipo</label>
+                  <select id="reports-type">
+                    <option value="received">Clientes (Received)</option>
+                    <option value="sent">Fornecedores (Sent)</option>
+                  </select>
+                </div>
+                <div class="form-field" style="align-self: flex-end;">
+                  <button id="reports-apply-filters" class="btn btn-primary">Aplicar</button>
+                </div>
+              </div>
 
-              <section class="panel">
-                <div class="panel-header">
-                  <h2>Relatórios Gerados</h2>
-                  <p class="panel-subtitle">Últimos 12 relatórios mais recentes</p>
-                </div>
-                <p id="reports-error" class="error-notice" hidden></p>
-                <div id="reports-list" class="list"></div>
-              </section>
-            </div>
+              <div id="reports-summary" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+              </div>
+
+              <div id="reports-table-container">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                  <thead style="background: var(--neutral-100); border-bottom: 2px solid var(--border-color);">
+                    <tr>
+                      <th style="text-align: left; padding: 0.75rem;">Entidade</th>
+                      <th style="text-align: center; padding: 0.75rem;">Total</th>
+                      <th style="text-align: center; padding: 0.75rem;">✓ Sucesso</th>
+                      <th style="text-align: center; padding: 0.75rem;">✗ Falhas</th>
+                      <th style="text-align: center; padding: 0.75rem;">⚠ Duplicados</th>
+                      <th style="text-align: left; padding: 0.75rem;">Última Atividade</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reports-entities-body">
+                  </tbody>
+                </table>
+              </div>
+              <p id="reports-error" class="error-notice" hidden></p>
+            </section>
           </section>
 
           <!-- Config View -->
