@@ -38,6 +38,11 @@ class ConnectionConfig:
     private_key_passphrase_env: str | None = None
     confirm_remote_processing: bool = True
     duplicate_policy: str = "report_only"
+    schedule_enabled: bool = False
+    schedule_frequency: str = "daily"
+    schedule_interval: int = 1
+    schedule_hour: int = 0
+    schedule_minute: int = 0
 
     def resolve_password(self) -> str | None:
         if self.password_env is None:

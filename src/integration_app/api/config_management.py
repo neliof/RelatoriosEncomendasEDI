@@ -18,6 +18,11 @@ ALLOWED_FIELDS = {
     "file_pattern",
     "duplicate_policy",
     "confirm_remote_processing",
+    "schedule_enabled",
+    "schedule_frequency",
+    "schedule_interval",
+    "schedule_hour",
+    "schedule_minute",
 }
 
 CREATE_REQUIRED_FIELDS = {
@@ -46,6 +51,11 @@ CREATE_ALLOWED_FIELDS = {
     "error_dir",
     "duplicate_policy",
     "confirm_remote_processing",
+    "schedule_enabled",
+    "schedule_frequency",
+    "schedule_interval",
+    "schedule_hour",
+    "schedule_minute",
 }
 
 BLOCKED_FIELDS = {
@@ -278,5 +288,57 @@ def update_connection_credentials(
     return {
         "connection_name": connection_name,
         "updated": True,
+        "backup_path": str(backup_path),
+    }
+
+
+def update_connection_schedule(
+    config_path: Path,
+    connection_name: str,
+    updates: dict[str, object],
+) -> dict[str, object]:
+    config_path = Path(config_path)
+    if not config_path.exists():
+        raise ConfigUpdateError("Configuration file not found", status_code=404)
+
+    config = _load_yaml(config_path)
+    connection = _find_connection(config, connection_name)
+
+    allowed_updates = {
+        "schedule_enabled",
+        "schedule_frequency",
+        "schedule_interval",
+        "schedule_hour",
+        "schedule_minute",
+    }
+    for key in updates:
+        if key not in allowed_updates:
+            raise ConfigUpdateError(f"Field '{key}' not allowed in schedule update", status_code=400)
+
+    if "schedule_frequency" in updates:
+        freq = updates["schedule_frequency"]
+        if freq not in {"daily", "hourly", "every_x_hours", "every_x_minutes"}:
+            raise ConfigUpdateError("Invalid schedule frequency", status_code=400)
+
+    if "schedule_interval" in updates:
+        interval = updates["schedule_interval"]
+        if not isinstance(interval, int) or interval <= 0:
+            raise ConfigUpdateError("Interval must be a positive integer", status_code=400)
+
+    if "schedule_hour" in updates:
+        hour = updates["schedule_hour"]
+        if not isinstance(hour, int) or not (0 <= hour < 24):
+            raise ConfigUpdateError("Hour must be between 0 and 23", status_code=400)
+
+    if "schedule_minute" in updates:
+        minute = updates["schedule_minute"]
+        if not isinstance(minute, int) or not (0 <= minute < 60):
+            raise ConfigUpdateError("Minute must be between 0 and 59", status_code=400)
+
+    connection.update(updates)
+    backup_path = _write_validated_config(config_path, config)
+    return {
+        "connection_name": connection_name,
+        "schedule_updated": True,
         "backup_path": str(backup_path),
     }

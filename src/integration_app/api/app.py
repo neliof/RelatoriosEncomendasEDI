@@ -14,6 +14,7 @@ from integration_app.api.config_management import (
     update_app_config,
     update_connection_config,
     update_connection_credentials,
+    update_connection_schedule,
 )
 from integration_app.api.read_models import (
     EventFilters,
@@ -26,12 +27,35 @@ from integration_app.api.read_models import (
     fetch_suppliers,
     list_reports,
 )
+from integration_app.config import load_config
+from integration_app.scheduler import IntegrationScheduler
+from integration_app.storage.sqlite_store import SQLiteStore
 
 
 def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config.yaml")) -> FastAPI:
     app = FastAPI(title="Relatorios Encomendas EDI API")
     static_dir = Path(__file__).with_name("static")
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+    scheduler: IntegrationScheduler | None = None
+
+    @app.on_event("startup")
+    def startup_scheduler() -> None:
+        nonlocal scheduler
+        try:
+            config = load_config(config_path)
+            store = SQLiteStore(db_path)
+            store.initialize()
+            scheduler = IntegrationScheduler(config, store)
+            scheduler.start()
+        except Exception:
+            pass
+
+    @app.on_event("shutdown")
+    def shutdown_scheduler() -> None:
+        nonlocal scheduler
+        if scheduler:
+            scheduler.stop()
 
     @app.get("/")
     def dashboard() -> FileResponse:
@@ -100,6 +124,16 @@ def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config
     ) -> dict[str, object]:
         try:
             return update_connection_credentials(config_path, connection_name, credentials)
+        except ConfigUpdateError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+    @app.patch("/config/connections/{connection_name}/schedule")
+    def update_schedule(
+        connection_name: str,
+        schedule: dict[str, object] = Body(...),
+    ) -> dict[str, object]:
+        try:
+            return update_connection_schedule(config_path, connection_name, schedule)
         except ConfigUpdateError as exc:
             raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 

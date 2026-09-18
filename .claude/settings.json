@@ -16,7 +16,15 @@
       "Bash(PYTHONPATH=src python -c \"from integration_app.api.app import create_app; from pathlib import Path; app = create_app\\(Path\\('data/integration.db'\\), Path\\('reports'\\)\\); print\\('API OK'\\); routes = [r.path for r in app.routes if 'config' in r.path]; print\\('Config routes:', sorted\\(set\\(routes\\)\\)\\)\")",
       "Bash(PYTHONPATH=src python -c \"from integration_app.core.runner import run_once; from integration_app.storage.sqlite_store import SQLiteStore; print\\('Imports OK'\\)\")",
       "Bash(PYTHONPATH=src python -c \"from integration_app.api.config_management import update_connection_credentials; print\\('OK'\\)\")",
-      "Bash(pkill -f \"python -m integration_app\")"
+      "Bash(pkill -f \"python -m integration_app\")",
+      "Bash(pkill -9 python)",
+      "Bash(PYTHONPATH=src nohup python -m integration_app.api)",
+      "Bash(curl -X PATCH http://127.0.0.1:8000/config/connections/test/credentials -H 'Content-Type: application/json' -d '{\"host\":\"example.com\",\"port\":21,\"username\":\"user\",\"password_env\":null}')",
+      "PowerShell(Get-Process python -ErrorAction SilentlyContinue)",
+      "PowerShell(taskkill /F /IM python.exe 2>$null)",
+      "Bash(curl -X PATCH http://127.0.0.1:8000/config/connections/test/credentials -H 'Content-Type: application/json' -d '{\"host\":\"example.com\",\"port\":21,\"username\":\"user\"}')",
+      "Bash(pip install *)",
+      "Bash(PYTHONPATH=src python -c \"from integration_app.scheduler import IntegrationScheduler; from integration_app.api.app import create_app; print\\('OK'\\)\")"
     ]
   }
 }

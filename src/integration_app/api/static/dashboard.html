@@ -381,6 +381,51 @@
                 </div>
               </form>
             </section>
+
+            <section class="panel" id="edit-schedule-panel" hidden>
+              <div class="panel-header">
+                <h2>Agendar Ligação</h2>
+                <p class="panel-subtitle" id="schedule-connection-name"></p>
+              </div>
+              <form id="edit-schedule-form" class="config-form">
+                <div class="form-row">
+                  <label class="checkbox-label">
+                    <input id="schedule-enabled" name="schedule_enabled" type="checkbox">
+                    <span>Ativar agendamento</span>
+                  </label>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="schedule-frequency">Frequência</label>
+                    <select id="schedule-frequency" name="schedule_frequency">
+                      <option value="daily">Diariamente</option>
+                      <option value="hourly">De hora em hora</option>
+                      <option value="every_x_hours">A cada X horas</option>
+                      <option value="every_x_minutes">A cada X minutos</option>
+                    </select>
+                  </div>
+                  <div class="form-field">
+                    <label for="schedule-interval">Intervalo</label>
+                    <input id="schedule-interval" name="schedule_interval" type="number" min="1" value="1" placeholder="1">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="schedule-hour">Hora (0-23)</label>
+                    <input id="schedule-hour" name="schedule_hour" type="number" min="0" max="23" value="0">
+                  </div>
+                  <div class="form-field">
+                    <label for="schedule-minute">Minuto (0-59)</label>
+                    <input id="schedule-minute" name="schedule_minute" type="number" min="0" max="59" value="0">
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Guardar Agendamento</button>
+                  <button type="button" class="btn btn-secondary" id="edit-schedule-cancel">Cancelar</button>
+                  <span id="edit-schedule-message" class="form-message" aria-live="polite"></span>
+                </div>
+              </form>
+            </section>
           </section>
         </div>
       </main>

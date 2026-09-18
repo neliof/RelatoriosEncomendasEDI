@@ -156,6 +156,11 @@ def fetch_config_summary(config_path: Path) -> dict[str, object]:
                 "confirm_remote_processing": connection.confirm_remote_processing,
                 "has_password_env": connection.password_env is not None,
                 "has_private_key": connection.private_key_path is not None,
+                "schedule_enabled": connection.schedule_enabled,
+                "schedule_frequency": connection.schedule_frequency,
+                "schedule_interval": connection.schedule_interval,
+                "schedule_hour": connection.schedule_hour,
+                "schedule_minute": connection.schedule_minute,
             }
             for connection in config.connections
         ],

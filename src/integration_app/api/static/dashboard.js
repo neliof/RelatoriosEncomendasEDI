@@ -236,6 +236,7 @@ function renderConfigSummary() {
           <button type="submit" class="btn btn-primary">Guardar</button>
           <button type="button" class="btn btn-secondary config-action-btn" data-action="toggle">${connection.enabled ? "Desativar" : "Ativar"}</button>
           <button type="button" class="btn btn-secondary edit-credentials-btn">Editar Credenciais</button>
+          <button type="button" class="btn btn-secondary edit-schedule-btn">Agendar</button>
           <span class="form-message" aria-live="polite"></span>
         </div>
       </form>
@@ -246,6 +247,9 @@ function renderConfigSummary() {
 
     const editCredsBtn = row.querySelector(".edit-credentials-btn");
     editCredsBtn.addEventListener("click", () => openEditCredentials(connection));
+
+    const editScheduleBtn = row.querySelector(".edit-schedule-btn");
+    editScheduleBtn.addEventListener("click", () => openEditSchedule(connection));
 
     row.querySelector(".config-form").addEventListener("submit", (event) => saveConnectionSettings(event, connection.name));
     container.appendChild(row);
@@ -326,6 +330,82 @@ async function saveEditCredentials(event, connectionName) {
 
 function showEditMessage(message, kind) {
   const element = document.getElementById("edit-credentials-message");
+  element.textContent = message;
+  element.className = `form-message ${kind}`;
+}
+
+function openEditSchedule(connection) {
+  const panel = document.getElementById("edit-schedule-panel");
+  const nameSpan = document.getElementById("schedule-connection-name");
+  const form = document.getElementById("edit-schedule-form");
+
+  nameSpan.textContent = connection.name;
+  form.reset();
+
+  document.getElementById("schedule-enabled").checked = connection.schedule_enabled || false;
+  document.getElementById("schedule-frequency").value = connection.schedule_frequency || "daily";
+  document.getElementById("schedule-interval").value = connection.schedule_interval || 1;
+  document.getElementById("schedule-hour").value = connection.schedule_hour || 0;
+  document.getElementById("schedule-minute").value = connection.schedule_minute || 0;
+
+  form.onsubmit = (e) => saveEditSchedule(e, connection.name);
+  document.getElementById("edit-schedule-cancel").onclick = () => {
+    panel.hidden = true;
+  };
+
+  panel.hidden = false;
+}
+
+async function saveEditSchedule(event, connectionName) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const panel = document.getElementById("edit-schedule-panel");
+
+  const schedule = {
+    schedule_enabled: document.getElementById("schedule-enabled").checked,
+    schedule_frequency: document.getElementById("schedule-frequency").value,
+    schedule_interval: Number(document.getElementById("schedule-interval").value),
+    schedule_hour: Number(document.getElementById("schedule-hour").value),
+    schedule_minute: Number(document.getElementById("schedule-minute").value),
+  };
+
+  if (schedule.schedule_interval <= 0) {
+    showScheduleMessage("Intervalo deve ser maior que 0.", "error");
+    return;
+  }
+
+  if (schedule.schedule_hour < 0 || schedule.schedule_hour > 23) {
+    showScheduleMessage("Hora deve estar entre 0 e 23.", "error");
+    return;
+  }
+
+  if (schedule.schedule_minute < 0 || schedule.schedule_minute > 59) {
+    showScheduleMessage("Minuto deve estar entre 0 e 59.", "error");
+    return;
+  }
+
+  try {
+    button.disabled = true;
+    button.textContent = "A guardar...";
+
+    await patchJson(`/config/connections/${encodeURIComponent(connectionName)}/schedule`, schedule);
+    await fetchConfigSummary();
+    showScheduleMessage("Agendamento guardado. Backup criado.", "success");
+
+    setTimeout(() => {
+      panel.hidden = true;
+    }, 1500);
+  } catch (error) {
+    showScheduleMessage(`Erro ao guardar: ${error.message}`, "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Guardar Agendamento";
+  }
+}
+
+function showScheduleMessage(message, kind) {
+  const element = document.getElementById("edit-schedule-message");
   element.textContent = message;
   element.className = `form-message ${kind}`;
 }
