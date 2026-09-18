@@ -212,15 +212,21 @@ def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config
 
         try:
             import sqlite3
+            import time
             database_path = Path(db_path)
             if database_path.exists():
-                try:
-                    sqlite3.connect(database_path).close()
-                except Exception:
-                    pass
-                import time
-                time.sleep(0.5)
-                database_path.unlink()
+                for attempt in range(5):
+                    try:
+                        conn = sqlite3.connect(database_path)
+                        conn.close()
+                        time.sleep(0.2)
+                        database_path.unlink()
+                        break
+                    except OSError:
+                        if attempt < 4:
+                            time.sleep(0.5)
+                        else:
+                            raise
             store = SQLiteStore(database_path)
             store.initialize()
             return {"database_deleted": True, "message": "Base de dados apagada e reinicializada com sucesso"}
