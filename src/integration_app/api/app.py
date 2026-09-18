@@ -192,8 +192,15 @@ def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config
             raise HTTPException(status_code=400, detail="Confirmation phrase incorrect")
 
         try:
+            import sqlite3
             database_path = Path(db_path)
             if database_path.exists():
+                try:
+                    sqlite3.connect(database_path).close()
+                except Exception:
+                    pass
+                import time
+                time.sleep(0.5)
                 database_path.unlink()
             store = SQLiteStore(database_path)
             store.initialize()
