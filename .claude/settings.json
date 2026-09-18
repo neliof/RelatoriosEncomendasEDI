@@ -14,7 +14,9 @@
       "Bash(PYTHONPATH=src python -c ' *)",
       "PowerShell(Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue | ForEach-Object { Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue | Stop-Process -Force 2>$null }; \"Killed\")",
       "Bash(PYTHONPATH=src python -c \"from integration_app.api.app import create_app; from pathlib import Path; app = create_app\\(Path\\('data/integration.db'\\), Path\\('reports'\\)\\); print\\('API OK'\\); routes = [r.path for r in app.routes if 'config' in r.path]; print\\('Config routes:', sorted\\(set\\(routes\\)\\)\\)\")",
-      "Bash(PYTHONPATH=src python -c \"from integration_app.core.runner import run_once; from integration_app.storage.sqlite_store import SQLiteStore; print\\('Imports OK'\\)\")"
+      "Bash(PYTHONPATH=src python -c \"from integration_app.core.runner import run_once; from integration_app.storage.sqlite_store import SQLiteStore; print\\('Imports OK'\\)\")",
+      "Bash(PYTHONPATH=src python -c \"from integration_app.api.config_management import update_connection_credentials; print\\('OK'\\)\")",
+      "Bash(pkill -f \"python -m integration_app\")"
     ]
   }
 }

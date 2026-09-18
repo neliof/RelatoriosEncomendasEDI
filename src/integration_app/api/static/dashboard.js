@@ -235,6 +235,7 @@ function renderConfigSummary() {
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">Guardar</button>
           <button type="button" class="btn btn-secondary config-action-btn" data-action="toggle">${connection.enabled ? "Desativar" : "Ativar"}</button>
+          <button type="button" class="btn btn-secondary edit-credentials-btn">Editar Credenciais</button>
           <span class="form-message" aria-live="polite"></span>
         </div>
       </form>
@@ -242,6 +243,9 @@ function renderConfigSummary() {
 
     const actionBtn = row.querySelector(".config-action-btn");
     actionBtn.addEventListener("click", () => toggleConnectionEnabled(connection.name, !connection.enabled));
+
+    const editCredsBtn = row.querySelector(".edit-credentials-btn");
+    editCredsBtn.addEventListener("click", () => openEditCredentials(connection));
 
     row.querySelector(".config-form").addEventListener("submit", (event) => saveConnectionSettings(event, connection.name));
     container.appendChild(row);
@@ -255,6 +259,75 @@ async function toggleConnectionEnabled(connectionName, enabled) {
   } catch (error) {
     showError("config-error", error);
   }
+}
+
+function openEditCredentials(connection) {
+  const panel = document.getElementById("edit-credentials-panel");
+  const nameSpan = document.getElementById("edit-connection-name");
+  const form = document.getElementById("edit-credentials-form");
+
+  nameSpan.textContent = connection.name;
+  form.reset();
+
+  document.getElementById("edit-host").value = connection.host || "";
+  document.getElementById("edit-port").value = connection.port || 21;
+  document.getElementById("edit-username").value = connection.username || "";
+  document.getElementById("edit-password-env").value = connection.password_env || "";
+
+  form.onsubmit = (e) => saveEditCredentials(e, connection.name);
+  document.getElementById("edit-credentials-cancel").onclick = () => {
+    panel.hidden = true;
+  };
+
+  panel.hidden = false;
+}
+
+async function saveEditCredentials(event, connectionName) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const button = form.querySelector('button[type="submit"]');
+  const panel = document.getElementById("edit-credentials-panel");
+
+  const credentials = {
+    host: document.getElementById("edit-host").value.trim(),
+    port: Number(document.getElementById("edit-port").value),
+    username: document.getElementById("edit-username").value.trim(),
+    password_env: document.getElementById("edit-password-env").value.trim() || null,
+  };
+
+  if (!credentials.host || !credentials.username || !credentials.port) {
+    showEditMessage("Host, utilizador e porta são obrigatórios.", "error");
+    return;
+  }
+
+  if (credentials.port <= 0 || credentials.port > 65535) {
+    showEditMessage("Porta deve estar entre 1 e 65535.", "error");
+    return;
+  }
+
+  try {
+    button.disabled = true;
+    button.textContent = "A guardar...";
+
+    await patchJson(`/config/connections/${encodeURIComponent(connectionName)}/credentials`, credentials);
+    await fetchConfigSummary();
+    showEditMessage("Credenciais guardadas. Backup criado.", "success");
+
+    setTimeout(() => {
+      panel.hidden = true;
+    }, 1500);
+  } catch (error) {
+    showEditMessage(`Erro ao guardar: ${error.message}`, "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Guardar Credenciais";
+  }
+}
+
+function showEditMessage(message, kind) {
+  const element = document.getElementById("edit-credentials-message");
+  element.textContent = message;
+  element.className = `form-message ${kind}`;
 }
 
 async function saveConnectionSettings(event, connectionName) {

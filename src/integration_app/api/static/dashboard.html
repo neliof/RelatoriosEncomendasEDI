@@ -347,6 +347,40 @@
               <p id="config-error" class="error-notice" hidden></p>
               <div id="config-list" class="config-list"></div>
             </section>
+
+            <section class="panel" id="edit-credentials-panel" hidden>
+              <div class="panel-header">
+                <h2>Editar Credenciais</h2>
+                <p class="panel-subtitle" id="edit-connection-name"></p>
+              </div>
+              <form id="edit-credentials-form" class="config-form">
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="edit-host">Host</label>
+                    <input id="edit-host" name="host" type="text" required placeholder="ftp.example.com">
+                  </div>
+                  <div class="form-field">
+                    <label for="edit-port">Porta</label>
+                    <input id="edit-port" name="port" type="number" min="1" max="65535" required>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="edit-username">Utilizador</label>
+                    <input id="edit-username" name="username" type="text" required placeholder="utilizador">
+                  </div>
+                  <div class="form-field">
+                    <label for="edit-password-env">Variável Password</label>
+                    <input id="edit-password-env" name="password_env" type="text" placeholder="NOME_DA_PASSWORD">
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Guardar Credenciais</button>
+                  <button type="button" class="btn btn-secondary" id="edit-credentials-cancel">Cancelar</button>
+                  <span id="edit-credentials-message" class="form-message" aria-live="polite"></span>
+                </div>
+              </form>
+            </section>
           </section>
         </div>
       </main>

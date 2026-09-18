@@ -13,6 +13,7 @@ from integration_app.api.config_management import (
     delete_connection_config,
     update_app_config,
     update_connection_config,
+    update_connection_credentials,
 )
 from integration_app.api.read_models import (
     EventFilters,
@@ -89,6 +90,16 @@ def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config
     ) -> dict[str, object]:
         try:
             return update_connection_config(config_path, connection_name, updates)
+        except ConfigUpdateError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+    @app.patch("/config/connections/{connection_name}/credentials")
+    def update_credentials(
+        connection_name: str,
+        credentials: dict[str, object] = Body(...),
+    ) -> dict[str, object]:
+        try:
+            return update_connection_credentials(config_path, connection_name, credentials)
         except ConfigUpdateError as exc:
             raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 

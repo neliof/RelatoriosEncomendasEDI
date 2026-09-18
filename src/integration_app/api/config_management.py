@@ -249,3 +249,34 @@ def update_app_config(config_path: Path, updates: dict[str, object]) -> dict[str
         "updated": True,
         "backup_path": str(backup_path),
     }
+
+
+def update_connection_credentials(
+    config_path: Path,
+    connection_name: str,
+    updates: dict[str, object],
+) -> dict[str, object]:
+    config_path = Path(config_path)
+    if not config_path.exists():
+        raise ConfigUpdateError("Configuration file not found", status_code=404)
+
+    config = _load_yaml(config_path)
+    connection = _find_connection(config, connection_name)
+
+    allowed_updates = {"host", "port", "username", "password_env"}
+    for key in updates:
+        if key not in allowed_updates:
+            raise ConfigUpdateError(f"Field '{key}' not allowed in credentials update", status_code=400)
+
+    if "port" in updates:
+        port_value = updates["port"]
+        if not isinstance(port_value, int) or port_value <= 0 or port_value > 65535:
+            raise ConfigUpdateError("Port must be a valid number between 1 and 65535", status_code=400)
+
+    connection.update(updates)
+    backup_path = _write_validated_config(config_path, config)
+    return {
+        "connection_name": connection_name,
+        "updated": True,
+        "backup_path": str(backup_path),
+    }
