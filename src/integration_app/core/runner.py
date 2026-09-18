@@ -27,6 +27,23 @@ def _extract_origin_for_event(local_path: Path, flow_type: str) -> str | None:
         return None
 
 
+def _should_process_generix_file(store: SQLiteStore, connection: ConnectionConfig, local_path: Path) -> bool:
+    if connection.protocol != "local":
+        return True
+
+    try:
+        mtime = local_path.stat().st_mtime
+        mtime_str = str(mtime)
+        last_mtime = store.get_generix_last_mtime(connection.name)
+
+        if last_mtime is None:
+            return True
+
+        return float(mtime_str) > float(last_mtime)
+    except Exception:
+        return True
+
+
 @dataclass(frozen=True)
 class RunSummary:
     processed: int = 0
@@ -55,6 +72,8 @@ def run_once(
         for local_path in discover_files(connection):
             if not is_stable(local_path, config.defaults.stable_after_seconds):
                 summary = summary.add(skipped_unstable=1)
+                continue
+            if not _should_process_generix_file(store, connection, local_path):
                 continue
             remote_path = remote_path_for(connection, local_path)
             is_duplicate = _is_duplicate_order(connection, store, local_path)
@@ -89,6 +108,9 @@ def run_once(
                 finished = datetime.now(UTC)
                 store.record_transfer_result(event_id, "sent", started, finished, None)
                 move_to_status_dir(local_path, connection.sent_dir)
+                if connection.protocol == "local":
+                    mtime = local_path.stat().st_mtime
+                    store.update_generix_mtime(connection.name, str(mtime))
                 summary = summary.add(processed=1, sent=1)
             except Exception as exc:
                 finished = datetime.now(UTC)
