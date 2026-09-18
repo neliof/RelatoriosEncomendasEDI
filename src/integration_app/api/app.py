@@ -7,7 +7,12 @@ from fastapi import Body, FastAPI, Header, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from integration_app.api.config_management import ConfigUpdateError, add_connection_config, update_connection_config
+from integration_app.api.config_management import (
+    ConfigUpdateError,
+    add_connection_config,
+    delete_connection_config,
+    update_connection_config,
+)
 from integration_app.api.read_models import (
     EventFilters,
     fetch_connections,
@@ -21,7 +26,7 @@ from integration_app.api.read_models import (
 
 
 def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config.yaml")) -> FastAPI:
-    app = FastAPI(title="Relatorios Encomendas EDI EF API")
+    app = FastAPI(title="Relatorios Encomendas EDI API")
     static_dir = Path(__file__).with_name("static")
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
@@ -87,6 +92,20 @@ def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config
         _require_admin_password(x_admin_password)
         try:
             return add_connection_config(config_path, connection)
+        except ConfigUpdateError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+    @app.delete("/config/connections/{connection_name}")
+    def delete_config_connection(
+        connection_name: str,
+        confirmation: dict[str, object] = Body(...),
+        x_admin_password: str | None = Header(default=None),
+    ) -> dict[str, object]:
+        _require_admin_password(x_admin_password)
+        if confirmation.get("confirm_name") != connection_name:
+            raise HTTPException(status_code=400, detail="Connection name confirmation does not match")
+        try:
+            return delete_connection_config(config_path, connection_name)
         except ConfigUpdateError as exc:
             raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
 
