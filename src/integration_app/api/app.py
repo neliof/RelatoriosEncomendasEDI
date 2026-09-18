@@ -192,9 +192,9 @@ def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config
             raise HTTPException(status_code=400, detail="Confirmation phrase incorrect")
 
         try:
-            db_path = Path(db_path) if isinstance(db_path, str) else db_path
-            if db_path.exists():
-                db_path.unlink()
+            database_path = Path(db_path)
+            if database_path.exists():
+                database_path.unlink()
             return {"database_deleted": True, "message": "Base de dados apagada com sucesso"}
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"Erro ao apagar BD: {str(exc)}") from exc
