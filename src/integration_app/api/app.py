@@ -23,6 +23,8 @@ from integration_app.api.read_models import (
     fetch_config_summary,
     fetch_event_detail,
     fetch_events,
+    fetch_reports_by_entity,
+    fetch_reports_summary,
     fetch_summary,
     fetch_suppliers,
     list_reports,
@@ -173,6 +175,23 @@ def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config
     @app.get("/reports")
     def reports() -> dict[str, object]:
         return {"items": list_reports(report_dir)}
+
+    @app.get("/reports/summary")
+    def reports_summary(
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> dict[str, object]:
+        return fetch_reports_summary(db_path, date_from, date_to)
+
+    @app.get("/reports/by-entity")
+    def reports_by_entity(
+        flow_type: str = "received",
+        date_from: str | None = None,
+        date_to: str | None = None,
+    ) -> dict[str, object]:
+        if flow_type not in {"received", "sent"}:
+            raise HTTPException(status_code=400, detail="Invalid flow_type")
+        return {"items": fetch_reports_by_entity(db_path, flow_type, date_from, date_to)}
 
     @app.get("/reports/{report_name:path}")
     def report_file(report_name: str) -> FileResponse:

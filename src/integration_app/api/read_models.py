@@ -240,6 +240,88 @@ def _connect(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
+def fetch_reports_summary(
+    db_path: Path,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> dict[str, object]:
+    sql = "SELECT COUNT(*) as total, status FROM file_events"
+    params: list[object] = []
+
+    where_clauses = []
+    if date_from:
+        where_clauses.append("date(detected_at) >= date(?)")
+        params.append(date_from)
+    if date_to:
+        where_clauses.append("date(detected_at) <= date(?)")
+        params.append(date_to)
+
+    if where_clauses:
+        sql += " WHERE " + " AND ".join(where_clauses)
+
+    sql += " GROUP BY status"
+
+    with _connect(db_path) as conn:
+        rows = conn.execute(sql, params).fetchall()
+
+    summary = {"total": 0, "sent": 0, "failed": 0, "confirmed": 0, "duplicate": 0}
+    for row in rows:
+        status = str(row["status"] or "")
+        count = int(row["total"])
+        summary["total"] += count
+        if status in summary:
+            summary[status] = count
+
+    return summary
+
+
+def fetch_reports_by_entity(
+    db_path: Path,
+    flow_type: str,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> list[dict[str, object]]:
+    entity_field = "edi_origin_name" if flow_type == "received" else "edi_fornecedor_nome"
+    entity_name_key = "origin_name" if flow_type == "received" else "supplier_name"
+
+    sql = f"""
+        SELECT
+            {entity_field} as entity_name,
+            COUNT(*) as total_files,
+            SUM(CASE WHEN status = 'sent' OR status = 'confirmed' THEN 1 ELSE 0 END) as sent_count,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed_count,
+            SUM(CASE WHEN status = 'duplicate' THEN 1 ELSE 0 END) as duplicate_count,
+            MAX(detected_at) as last_activity
+        FROM file_events
+        WHERE flow_type = ?
+    """
+    params: list[object] = [flow_type]
+
+    if date_from:
+        sql += " AND date(detected_at) >= date(?)"
+        params.append(date_from)
+    if date_to:
+        sql += " AND date(detected_at) <= date(?)"
+        params.append(date_to)
+
+    sql += " GROUP BY entity_name ORDER BY total_files DESC"
+
+    with _connect(db_path) as conn:
+        rows = conn.execute(sql, params).fetchall()
+
+    return [
+        {
+            entity_name_key: str(row["entity_name"] or "UNKNOWN"),
+            "total_files": int(row["total_files"]),
+            "sent_count": int(row["sent_count"] or 0),
+            "failed_count": int(row["failed_count"] or 0),
+            "duplicate_count": int(row["duplicate_count"] or 0),
+            "last_activity": str(row["last_activity"] or ""),
+        }
+        for row in rows
+    ]
+
+
 def _report_kind(name: str) -> str:
     if "-summary." in name:
         return "summary"
