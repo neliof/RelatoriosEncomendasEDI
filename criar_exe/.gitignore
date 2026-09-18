@@ -1,0 +1,15 @@
+# Build artifacts
+build/
+build_specs/
+dist/
+
+# Release folder (too large, generated locally)
+release/
+
+# Python cache
+__pycache__/
+*.pyc
+*.egg-info/
+
+# NSSM (optional, large binary)
+# nssm.exe should be downloaded separately
