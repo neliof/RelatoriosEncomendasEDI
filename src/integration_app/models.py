@@ -33,6 +33,7 @@ class ConnectionConfig:
     file_pattern: str
     sent_dir: str = "Enviados"
     error_dir: str = "Erros"
+    password: str | None = None
     password_env: str | None = None
     private_key_path: Path | None = None
     private_key_passphrase_env: str | None = None
@@ -45,6 +46,8 @@ class ConnectionConfig:
     schedule_minute: int = 0
 
     def resolve_password(self) -> str | None:
+        if self.password is not None:
+            return self.password
         if self.password_env is None:
             return None
         return os.environ.get(self.password_env)

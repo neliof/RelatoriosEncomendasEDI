@@ -62,6 +62,7 @@ def _parse_connection(raw: Any) -> ConnectionConfig:
         file_pattern=str(raw.get("file_pattern", "*")),
         sent_dir=str(raw.get("sent_dir", "Enviados")),
         error_dir=str(raw.get("error_dir", "Erros")),
+        password=_optional_str(raw, "password"),
         password_env=_optional_str(raw, "password_env"),
         private_key_path=Path(raw["private_key_path"]) if raw.get("private_key_path") else None,
         private_key_passphrase_env=_optional_str(raw, "private_key_passphrase_env"),
