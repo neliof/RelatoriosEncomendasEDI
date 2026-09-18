@@ -182,6 +182,23 @@ def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config
             raise HTTPException(status_code=404, detail="Report not found")
         return FileResponse(candidate, filename=candidate.name)
 
+    @app.delete("/config/database")
+    def delete_database(
+        confirmation: dict[str, object] = Body(...),
+        x_admin_password: str | None = Header(default=None),
+    ) -> dict[str, object]:
+        _require_admin_password(x_admin_password)
+        if confirmation.get("confirm") != "DELETE_ALL_DATA":
+            raise HTTPException(status_code=400, detail="Confirmation phrase incorrect")
+
+        try:
+            db_path = Path(db_path) if isinstance(db_path, str) else db_path
+            if db_path.exists():
+                db_path.unlink()
+            return {"database_deleted": True, "message": "Base de dados apagada com sucesso"}
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"Erro ao apagar BD: {str(exc)}") from exc
+
     return app
 
 

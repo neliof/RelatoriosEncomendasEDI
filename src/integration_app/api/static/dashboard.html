@@ -426,6 +426,34 @@
                 </div>
               </form>
             </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Manutenção</h2>
+                <p class="panel-subtitle">Operações de limpeza e reset</p>
+              </div>
+              <form id="clear-database-form" class="config-form">
+                <div class="form-row">
+                  <p style="margin: 0; color: var(--danger-600); font-size: 0.95rem;">⚠️ Isto irá apagar todos os eventos registados na base de dados. Esta ação não pode ser desfeita.</p>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="db-admin-pwd">Password Admin *</label>
+                    <input id="db-admin-pwd" name="admin_password" type="password" autocomplete="current-password" required placeholder="••••••••">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="db-confirm">Digite "DELETE_ALL_DATA" para confirmar *</label>
+                    <input id="db-confirm" name="confirm" type="text" required placeholder="DELETE_ALL_DATA">
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-secondary" style="background: var(--danger-600); border-color: var(--danger-600);">Limpar Base de Dados</button>
+                  <span id="clear-database-message" class="form-message" aria-live="polite"></span>
+                </div>
+              </form>
+            </section>
           </section>
         </div>
       </main>

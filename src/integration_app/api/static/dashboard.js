@@ -16,6 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("clear-filters-button").addEventListener("click", clearEventFilters);
   document.getElementById("new-connection-form").addEventListener("submit", saveNewConnection);
   document.getElementById("general-config-form").addEventListener("submit", saveGeneralConfig);
+  document.getElementById("clear-database-form").addEventListener("submit", clearDatabase);
   document.getElementById("event-detail-close").addEventListener("click", hideEventDetail);
   document.getElementById("detail-overlay").addEventListener("click", hideEventDetail);
   refreshAll();
@@ -415,6 +416,63 @@ async function saveEditSchedule(event, connectionName) {
 
 function showScheduleMessage(message, kind) {
   const element = document.getElementById("edit-schedule-message");
+  element.textContent = message;
+  element.className = `form-message ${kind}`;
+}
+
+async function clearDatabase(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const confirm = document.getElementById("db-confirm").value;
+  const adminPassword = document.getElementById("db-admin-pwd").value;
+  const button = form.querySelector('button[type="submit"]');
+
+  if (confirm !== "DELETE_ALL_DATA") {
+    showClearDatabaseMessage("Digite exatamente 'DELETE_ALL_DATA' para confirmar.", "error");
+    return;
+  }
+
+  if (!confirm || !adminPassword) {
+    showClearDatabaseMessage("Preencha todos os campos obrigatórios.", "error");
+    return;
+  }
+
+  if (!window.confirm("Tem a certeza? Esta ação irá apagar TODOS os eventos da base de dados e não pode ser desfeita.")) {
+    return;
+  }
+
+  try {
+    button.disabled = true;
+    button.textContent = "A apagar...";
+
+    const response = await fetch("/config/database", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Password": adminPassword,
+      },
+      body: JSON.stringify({ confirm: "DELETE_ALL_DATA" }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    form.reset();
+    showClearDatabaseMessage("Base de dados apagada com sucesso. A recarregar dados...", "success");
+    setTimeout(() => {
+      refreshAll();
+    }, 1500);
+  } catch (error) {
+    showClearDatabaseMessage(`Erro: ${error.message}`, "error");
+  } finally {
+    button.disabled = false;
+    button.textContent = "Limpar Base de Dados";
+  }
+}
+
+function showClearDatabaseMessage(message, kind) {
+  const element = document.getElementById("clear-database-message");
   element.textContent = message;
   element.className = `form-message ${kind}`;
 }
