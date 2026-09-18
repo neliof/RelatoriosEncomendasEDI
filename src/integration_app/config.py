@@ -67,6 +67,11 @@ def _parse_connection(raw: Any) -> ConnectionConfig:
         private_key_passphrase_env=_optional_str(raw, "private_key_passphrase_env"),
         confirm_remote_processing=_optional_bool(raw, "confirm_remote_processing", True),
         duplicate_policy=_duplicate_policy(raw),
+        schedule_enabled=_optional_bool(raw, "schedule_enabled", False),
+        schedule_frequency=str(raw.get("schedule_frequency", "daily")),
+        schedule_interval=_required_int(raw, "schedule_interval") if raw.get("schedule_interval") else 1,
+        schedule_hour=_required_int(raw, "schedule_hour") if raw.get("schedule_hour") else 0,
+        schedule_minute=_required_int(raw, "schedule_minute") if raw.get("schedule_minute") else 0,
     )
 
 
