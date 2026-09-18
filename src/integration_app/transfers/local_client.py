@@ -22,11 +22,6 @@ class LocalTransferClient:
         if not source.exists():
             raise FileNotFoundError(f"Source file not found: {source}")
 
-        destination = Path(self.connection.source_dir) / Path(remote_path).name
-        destination.parent.mkdir(parents=True, exist_ok=True)
-
-        shutil.copy2(source, destination)
-
     def exists(self, remote_path: str) -> bool:
         destination = Path(self.connection.source_dir) / Path(remote_path).name
         return destination.exists()

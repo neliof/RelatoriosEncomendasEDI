@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import shutil
+import time
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 
@@ -39,7 +40,16 @@ def move_to_status_dir(path: Path, status_dir_name: str) -> Path:
             counter += 1
     if target.exists():
         raise FileExistsError(f"Status target already exists: {target}")
-    return shutil.move(str(path), str(target)) and target
+
+    for attempt in range(3):
+        try:
+            shutil.move(str(path), str(target))
+            return target
+        except OSError as exc:
+            if attempt < 2:
+                time.sleep(0.1)
+            else:
+                raise exc
 
 
 def remote_path_for(connection: ConnectionConfig, local_path: Path) -> str:
