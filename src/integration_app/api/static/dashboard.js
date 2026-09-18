@@ -8,35 +8,63 @@ const state = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  setupTabs();
+  setupNav();
+  setupSidebarToggle();
   document.getElementById("refresh-button").addEventListener("click", refreshAll);
   document.getElementById("event-filters").addEventListener("input", fetchEvents);
   document.getElementById("clear-filters-button").addEventListener("click", clearEventFilters);
   document.getElementById("new-connection-form").addEventListener("submit", saveNewConnection);
   document.getElementById("event-detail-close").addEventListener("click", hideEventDetail);
+  document.getElementById("detail-overlay").addEventListener("click", hideEventDetail);
   refreshAll();
 });
 
-function setupTabs() {
-  for (const tab of document.querySelectorAll("[data-view]")) {
-    tab.addEventListener("click", () => showView(tab.dataset.view));
+function setupNav() {
+  for (const btn of document.querySelectorAll("[data-view]")) {
+    btn.addEventListener("click", () => showView(btn.dataset.view));
   }
+}
+
+function setupSidebarToggle() {
+  const toggle = document.getElementById("sidebar-toggle");
+  const sidebar = document.querySelector(".sidebar");
+
+  if (toggle) {
+    toggle.addEventListener("click", () => {
+      sidebar.classList.toggle("open");
+    });
+  }
+
+  document.addEventListener("click", (e) => {
+    if (!sidebar.contains(e.target) && !toggle.contains(e.target)) {
+      sidebar.classList.remove("open");
+    }
+  });
 }
 
 function showView(viewName) {
   for (const view of document.querySelectorAll(".view")) {
-    view.hidden = view.id !== `view-${viewName}`;
+    view.classList.toggle("active", view.id === `view-${viewName}`);
   }
-  for (const tab of document.querySelectorAll("[data-view]")) {
-    const active = tab.dataset.view === viewName;
-    tab.classList.toggle("active", active);
-    tab.setAttribute("aria-selected", active ? "true" : "false");
+
+  for (const btn of document.querySelectorAll("[data-view]")) {
+    btn.classList.toggle("active", btn.dataset.view === viewName);
   }
+
+  document.querySelector(".sidebar").classList.remove("open");
 }
 
 async function refreshAll() {
-  await Promise.all([fetchSummary(), fetchEvents(), fetchConnections(), fetchConfigSummary(), fetchSuppliers(), fetchReports()]);
-  document.getElementById("last-updated").textContent = `Ultima actualizacao: ${new Date().toLocaleString("pt-PT")}`;
+  await Promise.all([
+    fetchSummary(),
+    fetchEvents(),
+    fetchConnections(),
+    fetchConfigSummary(),
+    fetchSuppliers(),
+    fetchReports(),
+  ]);
+  const now = new Date();
+  document.getElementById("last-updated").textContent = `Última atualização: ${now.toLocaleString("pt-PT")}`;
 }
 
 async function fetchSummary() {
@@ -51,7 +79,7 @@ async function fetchSummary() {
     setMetric("metric-failed", summary.failed_count);
     renderOperationalAlerts(summary);
   } catch (error) {
-    document.getElementById("last-updated").textContent = `Erro no resumo: ${error.message}`;
+    console.error("Erro ao buscar resumo:", error);
   }
 }
 
@@ -62,6 +90,7 @@ async function fetchEvents() {
   const dateFrom = document.getElementById("date-from-filter").value;
   const dateTo = document.getElementById("date-to-filter").value;
   const limit = document.getElementById("limit-filter").value;
+
   if (status) params.set("status", status);
   if (connection) params.set("connection_name", connection);
   if (dateFrom) params.set("date_from", dateFrom);
@@ -113,38 +142,63 @@ function renderConfigSummary() {
   const container = document.getElementById("config-list");
   container.innerHTML = "";
   const connections = state.config?.connections || [];
+
   if (connections.length === 0) {
-    container.textContent = state.config?.config_exists === false ? "Config.yaml nao encontrado." : "Sem ligacoes configuradas.";
+    container.innerHTML = `<div style="padding: 16px; text-align: center; color: var(--text-tertiary);">
+      ${state.config?.config_exists === false ? "Config.yaml não encontrado." : "Sem ligações configuradas."}
+    </div>`;
     return;
   }
+
   for (const connection of connections) {
     const row = document.createElement("div");
-    row.className = "list-row config-row";
+    row.className = "config-row";
     row.innerHTML = `
       <div>
         <strong>${escapeHtml(connection.name || "")}</strong>
-        <small>${escapeHtml(connection.protocol || "")} | ${connection.enabled ? "Activo" : "Inactivo"} | ${escapeHtml(connection.file_pattern || "")}</small>
-        <form class="config-form">
-          <label class="config-field">Origem <input name="source_dir" value="${escapeHtml(connection.source_dir || "")}"></label>
-          <label class="config-field">Destino <input name="remote_dir" value="${escapeHtml(connection.remote_dir || "")}"></label>
-          <label class="config-field">Padrao <input name="file_pattern" value="${escapeHtml(connection.file_pattern || "")}"></label>
-          <label class="config-field">Duplicados
+        <small>${escapeHtml(connection.protocol || "")} | ${connection.enabled ? "Ativo" : "Inativo"} | ${escapeHtml(connection.file_pattern || "")}</small>
+      </div>
+      <form class="config-form">
+        <div class="form-row">
+          <div class="form-field">
+            <label>Origem</label>
+            <input name="source_dir" value="${escapeHtml(connection.source_dir || "")}">
+          </div>
+          <div class="form-field">
+            <label>Destino</label>
+            <input name="remote_dir" value="${escapeHtml(connection.remote_dir || "")}">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-field">
+            <label>Padrão</label>
+            <input name="file_pattern" value="${escapeHtml(connection.file_pattern || "")}">
+          </div>
+          <div class="form-field">
+            <label>Duplicados</label>
             <select name="duplicate_policy">
               <option value="report_only"${connection.duplicate_policy === "report_only" ? " selected" : ""}>Reportar</option>
               <option value="move_to_duplicates"${connection.duplicate_policy === "move_to_duplicates" ? " selected" : ""}>Mover</option>
             </select>
-          </label>
-          <label class="config-field config-checkbox">
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="checkbox-label">
             <input name="confirm_remote_processing" type="checkbox"${connection.confirm_remote_processing ? " checked" : ""}>
-            Confirmar processamento remoto
+            <span>Confirmar processamento remoto</span>
           </label>
-          <button type="submit">Guardar</button>
-          <span class="config-message" aria-live="polite"></span>
-        </form>
-      </div>
-      <button class="config-action" type="button">${connection.enabled ? "Desactivar" : "Activar"}</button>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Guardar</button>
+          <button type="button" class="btn btn-secondary config-action-btn" data-action="toggle">${connection.enabled ? "Desativar" : "Ativar"}</button>
+          <span class="form-message" aria-live="polite"></span>
+        </div>
+      </form>
     `;
-    row.querySelector(".config-action").addEventListener("click", () => toggleConnectionEnabled(connection.name, !connection.enabled));
+
+    const actionBtn = row.querySelector(".config-action-btn");
+    actionBtn.addEventListener("click", () => toggleConnectionEnabled(connection.name, !connection.enabled));
+
     row.querySelector(".config-form").addEventListener("submit", (event) => saveConnectionSettings(event, connection.name));
     container.appendChild(row);
   }
@@ -165,17 +219,24 @@ async function saveConnectionSettings(event, connectionName) {
   const button = form.querySelector('button[type="submit"]');
   const settings = collectConnectionSettings(form);
   const validationError = validateConnectionSettings(settings);
+
   if (validationError) {
     showConfigMessage(form, validationError, "error");
     return;
   }
+
   try {
     button.disabled = true;
+    const originalText = button.textContent;
     button.textContent = "A guardar...";
+
     await patchJson(`/config/connections/${encodeURIComponent(connectionName)}`, settings);
     await fetchConfigSummary();
-    const refreshed = findConfigForm(connectionName);
-    showConfigMessage(refreshed || form, "Configuracao guardada. Backup criado.", "success");
+
+    const refreshed = form.closest(".config-row");
+    if (refreshed) {
+      showConfigMessage(form, "Configuração guardada. Backup criado.", "success");
+    }
   } catch (error) {
     showConfigMessage(form, `Erro ao guardar: ${error.message}`, "error");
   } finally {
@@ -197,29 +258,19 @@ function collectConnectionSettings(form) {
 
 function validateConnectionSettings(settings) {
   if (!settings.source_dir.trim() || !settings.remote_dir.trim() || !settings.file_pattern.trim()) {
-    return "Origem, destino e padrao sao obrigatorios.";
+    return "Origem, destino e padrão são obrigatórios.";
   }
   if (!["report_only", "move_to_duplicates"].includes(settings.duplicate_policy)) {
-    return "Politica de duplicados invalida.";
+    return "Política de duplicados inválida.";
   }
   return "";
 }
 
 function showConfigMessage(form, message, kind) {
-  const element = form.querySelector(".config-message");
+  const element = form.querySelector(".form-message");
   if (!element) return;
   element.textContent = message;
-  element.className = `config-message ${kind}`;
-}
-
-function findConfigForm(connectionName) {
-  const forms = document.querySelectorAll(".config-form");
-  for (const form of forms) {
-    if (form.parentElement?.querySelector("strong")?.textContent === connectionName) {
-      return form;
-    }
-  }
-  return null;
+  element.className = `form-message ${kind}`;
 }
 
 async function saveNewConnection(event) {
@@ -228,25 +279,29 @@ async function saveNewConnection(event) {
   const button = form.querySelector('button[type="submit"]');
   const { adminPassword, connection } = collectNewConnection(form);
   const validationError = validateNewConnection(connection, adminPassword);
+
   if (validationError) {
     showConfigMessage(form, validationError, "error");
     return;
   }
+
   try {
     button.disabled = true;
     button.textContent = "A criar...";
+
     await postJson("/config/connections", connection, adminPassword);
     form.reset();
     form.querySelector('[name="port"]').value = connection.protocol === "sftp" ? "22" : "21";
     form.querySelector('[name="file_pattern"]').value = "*";
     form.querySelector('[name="confirm_remote_processing"]').checked = true;
+
     await fetchConfigSummary();
-    showConfigMessage(form, "Ligacao criada. Backup criado.", "success");
+    showConfigMessage(form, "Ligação criada. Backup criado.", "success");
   } catch (error) {
     showConfigMessage(form, `Erro ao criar: ${error.message}`, "error");
   } finally {
     button.disabled = false;
-    button.textContent = "Criar ligacao";
+    button.textContent = "Criar Ligação";
   }
 }
 
@@ -269,9 +324,11 @@ function collectNewConnection(form) {
     duplicate_policy: String(data.get("duplicate_policy") || "").trim(),
     confirm_remote_processing: data.has("confirm_remote_processing"),
   };
+
   if (passwordEnv) {
     connection.password_env = passwordEnv;
   }
+
   return {
     adminPassword: String(data.get("admin_password") || ""),
     connection,
@@ -279,12 +336,12 @@ function collectNewConnection(form) {
 }
 
 function validateNewConnection(connection, adminPassword) {
-  if (!adminPassword) return "Password admin obrigatoria.";
-  if (!connection.name || !connection.host || !connection.username) return "Nome, host e utilizador sao obrigatorios.";
-  if (!connection.source_dir || !connection.remote_dir || !connection.file_pattern) return "Origem, destino e padrao sao obrigatorios.";
-  if (!["ftp", "sftp"].includes(connection.protocol)) return "Protocolo invalido.";
-  if (!Number.isInteger(connection.port) || connection.port <= 0) return "Porta invalida.";
-  if (!["report_only", "move_to_duplicates"].includes(connection.duplicate_policy)) return "Politica de duplicados invalida.";
+  if (!adminPassword) return "Password admin obrigatória.";
+  if (!connection.name || !connection.host || !connection.username) return "Nome, host e utilizador são obrigatórios.";
+  if (!connection.source_dir || !connection.remote_dir || !connection.file_pattern) return "Origem, destino e padrão são obrigatórios.";
+  if (!["ftp", "sftp"].includes(connection.protocol)) return "Protocolo inválido.";
+  if (!Number.isInteger(connection.port) || connection.port <= 0) return "Porta inválida.";
+  if (!["report_only", "move_to_duplicates"].includes(connection.duplicate_policy)) return "Política de duplicados inválida.";
   return "";
 }
 
@@ -302,21 +359,23 @@ async function fetchConnections() {
 function renderConnections() {
   const container = document.getElementById("connections-list");
   container.innerHTML = "";
+
   if (state.connections.length === 0) {
-    container.textContent = "Sem ligacoes para apresentar.";
+    container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-tertiary);">Sem ligações para apresentar.</div>`;
     return;
   }
+
   for (const connection of state.connections) {
-    const row = document.createElement("button");
-    row.className = connectionRowClass(connection);
-    row.type = "button";
-    row.innerHTML = `
+    const btn = document.createElement("button");
+    btn.className = `connection-row ${connectionRowClass(connection)}`;
+    btn.type = "button";
+    btn.innerHTML = `
       <strong>${escapeHtml(connection.connection_name || "")}</strong>
-      <small>${escapeHtml(connection.protocol || "")} | Total: ${connection.total_files ?? 0}</small>
+      <small>${escapeHtml(connection.protocol || "")} • Total: ${connection.total_files ?? 0}</small>
       <small>Falhados: ${connection.failed_count ?? 0} | Pendentes: ${connection.pending_count ?? 0} | Duplicados: ${connection.duplicate_count ?? 0}</small>
     `;
-    row.addEventListener("click", () => filterEventsByConnection(connection.connection_name));
-    container.appendChild(row);
+    btn.addEventListener("click", () => filterEventsByConnection(connection.connection_name));
+    container.appendChild(btn);
   }
 }
 
@@ -327,12 +386,12 @@ function filterEventsByConnection(connectionName) {
 
 function connectionRowClass(connection) {
   if (Number(connection.failed_count || 0) > 0) {
-    return "connection-row failed";
+    return "failed";
   }
   if (Number(connection.pending_count || 0) > 0) {
-    return "connection-row pending";
+    return "pending";
   }
-  return "connection-row";
+  return "";
 }
 
 async function fetchReports() {
@@ -391,13 +450,15 @@ function renderOperationalAlerts(summary) {
     { count: summary.duplicate_count, label: "Duplicados", className: "duplicate" },
     { count: summary.pending_count, label: "Pendentes", className: "pending" },
   ].filter((item) => Number(item.count || 0) > 0);
+
   const container = document.getElementById("operational-alerts");
   container.innerHTML = "";
   container.hidden = alerts.length === 0;
+
   for (const alert of alerts) {
     const item = document.createElement("div");
     item.className = `alert-item ${alert.className}`;
-    item.innerHTML = `<strong>${alert.count}</strong><span>${alert.label} requerem atencao.</span>`;
+    item.innerHTML = `<strong>${alert.count}</strong><span>${alert.label} requerem atenção.</span>`;
     container.appendChild(item);
   }
 }
@@ -405,13 +466,15 @@ function renderOperationalAlerts(summary) {
 function renderEvents() {
   const body = document.getElementById("events-body");
   body.innerHTML = "";
+
   if (state.events.length === 0) {
-    body.innerHTML = '<tr><td colspan="10">Sem eventos para apresentar.</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 40px; color: var(--text-tertiary);">Sem eventos para apresentar.</td></tr>';
     return;
   }
+
   for (const event of state.events) {
     const row = document.createElement("tr");
-    row.className = eventRowClass(event);
+    row.className = `event-row ${eventRowClass(event)}`;
     row.innerHTML = `
       <td>${formatDate(event.detected_at)}</td>
       <td>${escapeHtml(event.connection_name || "")}</td>
@@ -419,10 +482,10 @@ function renderEvents() {
       <td>${escapeHtml(orderNumberForEvent(event))}</td>
       <td>${escapeHtml(event.protocol || "")}</td>
       <td>${statusBadge(event.status)}</td>
-      <td>${escapeHtml(event.confirmation_status || "")}</td>
-      <td>${escapeHtml(shortPath(event.local_path || ""))}</td>
-      <td>${escapeHtml(event.error_message || "")}</td>
-      <td><button class="link-button" type="button" data-event-id="${event.id}">Detalhe</button></td>
+      <td>${escapeHtml(event.confirmation_status || "-")}</td>
+      <td title="${escapeHtml(event.local_path || "")}">${escapeHtml(shortPath(event.local_path || ""))}</td>
+      <td title="${escapeHtml(event.error_message || "")}">${escapeHtml((event.error_message || "").substring(0, 30))}</td>
+      <td style="text-align: center;"><button class="link-button" type="button" data-event-id="${event.id}">Ver</button></td>
     `;
     row.querySelector("button").addEventListener("click", () => showEventDetail(event.id));
     body.appendChild(row);
@@ -431,9 +494,9 @@ function renderEvents() {
 
 function eventRowClass(event) {
   if (event.confirmation_status === "pending") {
-    return "event-row pending";
+    return "pending";
   }
-  return `event-row ${event.status || "unknown"}`;
+  return event.status || "unknown";
 }
 
 function supplierForEvent(event) {
@@ -447,18 +510,20 @@ function orderNumberForEvent(event) {
 async function showEventDetail(eventId) {
   const panel = document.getElementById("event-detail");
   const body = document.getElementById("event-detail-body");
+
   panel.hidden = false;
   body.textContent = "A carregar detalhe...";
+
   try {
     const detail = await getJson(`/events/${eventId}`);
     body.innerHTML = detailRows([
-      ["Ligacao", detail.connection_name],
+      ["Ligação", detail.connection_name],
       ["Estado", detail.status],
-      ["Confirmacao", detail.confirmation_status],
+      ["Confirmação", detail.confirmation_status],
       ["Fornecedor EDI", detail.edi_fornecedor_nome],
-      ["Numero encomenda EDI", detail.edi_numero_encomenda],
+      ["Número encomenda EDI", detail.edi_numero_encomenda],
       ["Fornecedor XML", detail.xml_seller_name],
-      ["Numero encomenda XML", detail.xml_order_number],
+      ["Número encomenda XML", detail.xml_order_number],
       ["Ficheiro local", detail.local_path],
       ["Ficheiro remoto", detail.remote_path],
       ["Erro", detail.error_message],
@@ -482,16 +547,18 @@ function detailRows(rows) {
 function renderSuppliers() {
   const container = document.getElementById("suppliers-list");
   container.innerHTML = "";
+
   if (state.suppliers.length === 0) {
-    container.textContent = "Sem fornecedores para apresentar.";
+    container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-tertiary);">Sem fornecedores para apresentar.</div>`;
     return;
   }
+
   for (const supplier of state.suppliers) {
     const row = document.createElement("div");
     row.className = "list-row";
     row.innerHTML = `
       <div>
-        <strong>${escapeHtml(supplier.supplier_name || "UNKNOWN")}</strong>
+        <strong>${escapeHtml(supplier.supplier_name || "DESCONHECIDO")}</strong>
         <small>Total: ${supplier.total_files ?? 0}</small>
       </div>
       <small>Duplicados: ${supplier.duplicate_count ?? 0} | Falhados: ${supplier.failed_count ?? 0}</small>
@@ -503,10 +570,12 @@ function renderSuppliers() {
 function renderReports() {
   const container = document.getElementById("reports-list");
   container.innerHTML = "";
+
   if (state.reports.length === 0) {
-    container.textContent = "Sem relatorios para apresentar.";
+    container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-tertiary);">Sem relatórios para apresentar.</div>`;
     return;
   }
+
   for (const report of state.reports.slice(0, 12)) {
     const href = `/reports/${encodeURIComponent(report.name || "")}`;
     const row = document.createElement("div");
@@ -514,9 +583,9 @@ function renderReports() {
     row.innerHTML = `
       <div>
         <strong>${escapeHtml(report.name || "")}</strong>
-        <small>${escapeHtml(report.kind || "other")} | ${formatBytes(report.size_bytes)}</small>
+        <small>${escapeHtml(report.kind || "other")} • ${formatBytes(report.size_bytes)}</small>
       </div>
-      <small>${formatTimestamp(report.modified_at)} | <a href="${href}" target="_blank" rel="noopener">Abrir</a></small>
+      <small><a href="${href}" target="_blank" rel="noopener">Abrir</a></small>
     `;
     container.appendChild(row);
   }
@@ -529,25 +598,24 @@ function statusBadge(status) {
 
 function showError(id, error) {
   const element = document.getElementById(id);
-  element.hidden = false;
-  element.textContent = `Erro ao carregar dados: ${error.message}`;
+  if (element) {
+    element.hidden = false;
+    element.textContent = `Erro ao carregar dados: ${error.message}`;
+  }
 }
 
 function hideError(id) {
   const element = document.getElementById(id);
-  element.hidden = true;
-  element.textContent = "";
+  if (element) {
+    element.hidden = true;
+    element.textContent = "";
+  }
 }
 
 function formatDate(value) {
   if (!value) return "";
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString("pt-PT");
-}
-
-function formatTimestamp(value) {
-  if (!value) return "";
-  return new Date(Number(value) * 1000).toLocaleString("pt-PT");
 }
 
 function formatBytes(value) {

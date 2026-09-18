@@ -3,148 +3,343 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Relatorios Encomendas EDI EF</title>
+    <title>Relatórios Encomendas EDI EF</title>
     <link rel="stylesheet" href="/static/dashboard.css">
   </head>
   <body>
-    <main class="shell">
-      <header class="topbar">
-        <div>
-          <h1>Relatorios Encomendas EDI EF</h1>
-          <p id="last-updated">A carregar dados...</p>
+    <div class="layout">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect x="2" y="2" width="24" height="24" rx="4" fill="currentColor" opacity="0.1"/>
+              <path d="M9 8L9 20M14 8V20M19 8V20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>EDI EF</span>
+          </div>
+          <button id="sidebar-toggle" type="button" class="sidebar-toggle" aria-label="Toggle sidebar">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M3 5H17M3 10H17M3 15H17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
         </div>
-        <button id="refresh-button" type="button">Actualizar</button>
-      </header>
+        <nav class="sidebar-nav">
+          <button id="nav-overview" class="nav-item active" type="button" data-view="overview">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect x="2" y="2" width="16" height="16" rx="2" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M2 8H18M8 8V18M12 8V18" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            <span>Resumo</span>
+          </button>
+          <button id="nav-reports" class="nav-item" type="button" data-view="reports">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M3 3H17C17.5523 3 18 3.44772 18 4V16C18 16.5523 17.5523 17 17 17H3C2.44772 17 2 16.5523 2 16V4C2 3.44772 2.44772 3 3 3Z" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M5 7H15M5 11H15M5 15H10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span>Relatórios</span>
+          </button>
+          <button id="nav-config" class="nav-item" type="button" data-view="config">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <circle cx="10" cy="10" r="2" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M10 2V4.5M10 15.5V18M3.63 3.63L5.45 5.45M14.55 14.55L16.37 16.37M2 10H4.5M15.5 10H18M3.63 16.37L5.45 14.55M14.55 5.45L16.37 3.63" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <span>Configuração</span>
+          </button>
+        </nav>
+      </aside>
 
-      <nav class="tabs" aria-label="Navegacao principal">
-        <button id="tab-overview" class="tab active" type="button" data-view="overview">Resumo</button>
-        <button id="tab-reports" class="tab" type="button" data-view="reports">Relatorios</button>
-        <button id="tab-config" class="tab" type="button" data-view="config">Configuracoes</button>
-      </nav>
-
-      <section id="view-overview" class="view">
-        <section class="metrics" aria-label="Resumo operacional">
-          <article class="metric-card"><span>Total</span><strong id="metric-total">-</strong></article>
-          <article class="metric-card"><span>Enviados</span><strong id="metric-sent">-</strong></article>
-          <article class="metric-card"><span>Confirmados</span><strong id="metric-confirmed">-</strong></article>
-          <article class="metric-card"><span>Pendentes</span><strong id="metric-pending">-</strong></article>
-          <article class="metric-card"><span>Duplicados</span><strong id="metric-duplicate">-</strong></article>
-          <article class="metric-card"><span>Falhados</span><strong id="metric-failed">-</strong></article>
-        </section>
-        <section id="operational-alerts" class="alerts" aria-live="polite" hidden></section>
-
-        <section class="panel">
-          <h2>Ligacoes</h2>
-          <p id="connections-error" class="notice" hidden></p>
-          <div id="connections-list" class="connection-list"></div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-header">
-            <h2>Eventos recentes</h2>
-            <form id="event-filters" class="filters">
-              <select id="status-filter" aria-label="Estado">
-                <option value="">Todos</option>
-                <option value="sent">Enviados</option>
-                <option value="confirmed">Confirmados</option>
-                <option value="duplicate">Duplicados</option>
-                <option value="failed">Falhados</option>
-                <option value="detected">Detectados</option>
-              </select>
-              <input id="connection-filter" type="search" placeholder="Ligacao" aria-label="Ligacao">
-              <input id="date-from-filter" type="date" aria-label="Data inicial">
-              <input id="date-to-filter" type="date" aria-label="Data final">
-              <input id="limit-filter" type="number" min="1" max="500" value="100" aria-label="Limite">
-              <button id="clear-filters-button" type="button">Limpar filtros</button>
-            </form>
+      <!-- Main Content -->
+      <main class="main">
+        <!-- Topbar -->
+        <header class="topbar">
+          <div class="topbar-left">
+            <h1>Relatórios Encomendas EDI EF</h1>
+            <p id="last-updated" class="topbar-subtitle">A carregar dados...</p>
           </div>
-          <p id="events-error" class="notice" hidden></p>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Ligacao</th>
-                  <th>Fornecedor</th>
-                  <th>Encomenda</th>
-                  <th>Protocolo</th>
-                  <th>Estado</th>
-                  <th>Confirmacao</th>
-                  <th>Ficheiro</th>
-                  <th>Erro</th>
-                  <th>Acao</th>
-                </tr>
-              </thead>
-              <tbody id="events-body"></tbody>
-            </table>
+          <div class="topbar-right">
+            <button id="refresh-button" type="button" class="btn btn-secondary" aria-label="Atualizar dados">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
+                <path d="M4 10C4 6.68629 6.68629 4 10 4C11.5264 4 12.9792 4.59832 14.0089 5.59834M16 10C16 13.3137 13.3137 16 10 16C8.47362 16 7.02079 15.4017 5.99113 14.4017" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14.5 5.5L14.0089 5.59834L14.5 7M5.5 14.5L5.99113 14.4017L5.5 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>Atualizar</span>
+            </button>
           </div>
-        </section>
-      </section>
+        </header>
 
-      <section id="view-reports" class="view" hidden>
-        <section class="grid">
-          <article class="panel">
-            <h2>Fornecedores</h2>
-            <p id="suppliers-error" class="notice" hidden></p>
-            <div id="suppliers-list" class="list"></div>
-          </article>
-          <article class="panel">
-            <h2>Relatorios</h2>
-            <p id="reports-error" class="notice" hidden></p>
-            <div id="reports-list" class="list"></div>
-          </article>
-        </section>
-      </section>
+        <!-- Views -->
+        <div class="views">
+          <!-- Overview View -->
+          <section id="view-overview" class="view active">
+            <!-- Metrics -->
+            <div class="metrics-grid">
+              <div class="metric-card">
+                <div class="metric-icon" style="background: linear-gradient(135deg, #0066cc 0%, #004499 100%);">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M2 6C2 4.89543 2.89543 4 4 4H16C17.1046 4 18 4.89543 18 6V14C18 15.1046 17.1046 16 16 16H4C2.89543 16 2 15.1046 2 14V6ZM4 6V14H16V6H4Z"/>
+                  </svg>
+                </div>
+                <div class="metric-content">
+                  <span class="metric-label">Total de Ficheiros</span>
+                  <strong id="metric-total" class="metric-value">-</strong>
+                </div>
+              </div>
 
-      <section id="view-config" class="view" hidden>
-        <section class="panel new-connection">
-          <h2>Nova ligacao</h2>
-          <form id="new-connection-form" class="config-form">
-            <label class="config-field">Nome <input name="name" required></label>
-            <label class="config-field">Protocolo
-              <select name="protocol">
-                <option value="ftp">FTP</option>
-                <option value="sftp">SFTP</option>
-              </select>
-            </label>
-            <label class="config-field">Host <input name="host" required></label>
-            <label class="config-field">Porta <input name="port" type="number" min="1" value="21" required></label>
-            <label class="config-field">Utilizador <input name="username" required></label>
-            <label class="config-field">Variavel password <input name="password_env" placeholder="NOME_DA_PASSWORD"></label>
-            <label class="config-field">Origem <input name="source_dir" required></label>
-            <label class="config-field">Destino <input name="remote_dir" required></label>
-            <label class="config-field">Padrao <input name="file_pattern" value="*" required></label>
-            <label class="config-field">Duplicados
-              <select name="duplicate_policy">
-                <option value="report_only">Reportar</option>
-                <option value="move_to_duplicates">Mover</option>
-              </select>
-            </label>
-            <label class="config-field config-checkbox">
-              <input name="confirm_remote_processing" type="checkbox" checked>
-              Confirmar processamento remoto
-            </label>
-            <label class="config-field">Password admin <input name="admin_password" type="password" autocomplete="current-password" required></label>
-            <button type="submit">Criar ligacao</button>
-            <span id="new-connection-message" class="config-message" aria-live="polite"></span>
-          </form>
-        </section>
-        <section class="panel config-panel">
-          <h2>Configuracao</h2>
-          <p id="config-error" class="notice" hidden></p>
-          <div id="config-list" class="list"></div>
-        </section>
-      </section>
-    </main>
+              <div class="metric-card">
+                <div class="metric-icon" style="background: linear-gradient(135deg, #00a366 0%, #008050 100%);">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 18C5.58172 18 2 14.4183 2 10C2 5.58172 5.58172 2 10 2C14.4183 2 18 5.58172 18 10C18 14.4183 14.4183 18 10 18ZM10 16C13.3137 16 16 13.3137 16 10C16 6.68629 13.3137 4 10 4C6.68629 4 4 6.68629 4 10C4 13.3137 6.68629 16 10 16ZM13.5 8.5L9 12L6.5 9.5L7.914 8.086L9 9.172L12.086 6.086L13.5 8.5Z"/>
+                  </svg>
+                </div>
+                <div class="metric-content">
+                  <span class="metric-label">Enviados</span>
+                  <strong id="metric-sent" class="metric-value">-</strong>
+                </div>
+              </div>
+
+              <div class="metric-card">
+                <div class="metric-icon" style="background: linear-gradient(135deg, #00cccc 0%, #0099aa 100%);">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 18C5.58172 18 2 14.4183 2 10C2 5.58172 5.58172 2 10 2C14.4183 2 18 5.58172 18 10C18 14.4183 14.4183 18 10 18ZM10 16C13.3137 16 16 13.3137 16 10C16 6.68629 13.3137 4 10 4C6.68629 4 4 6.68629 4 10C4 13.3137 6.68629 16 10 16ZM13.5 8.5L9 12L6.5 9.5L7.914 8.086L9 9.172L12.086 6.086L13.5 8.5Z"/>
+                  </svg>
+                </div>
+                <div class="metric-content">
+                  <span class="metric-label">Confirmados</span>
+                  <strong id="metric-confirmed" class="metric-value">-</strong>
+                </div>
+              </div>
+
+              <div class="metric-card">
+                <div class="metric-icon" style="background: linear-gradient(135deg, #ffaa00 0%, #dd8800 100%);">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2ZM10 4C13.3137 4 16 6.68629 16 10C16 13.3137 13.3137 16 10 16C6.68629 16 4 13.3137 4 10C4 6.68629 6.68629 4 10 4ZM10.5 7H9V11H13V10H10.5V7Z"/>
+                  </svg>
+                </div>
+                <div class="metric-content">
+                  <span class="metric-label">Pendentes</span>
+                  <strong id="metric-pending" class="metric-value">-</strong>
+                </div>
+              </div>
+
+              <div class="metric-card">
+                <div class="metric-icon" style="background: linear-gradient(135deg, #ff6b6b 0%, #cc5555 100%);">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2ZM10 4C13.3137 4 16 6.68629 16 10C16 13.3137 13.3137 16 10 16C6.68629 16 4 13.3137 4 10C4 6.68629 6.68629 4 10 4ZM10.5 7H9V11H13V10H10.5V7Z"/>
+                  </svg>
+                </div>
+                <div class="metric-content">
+                  <span class="metric-label">Duplicados</span>
+                  <strong id="metric-duplicate" class="metric-value">-</strong>
+                </div>
+              </div>
+
+              <div class="metric-card">
+                <div class="metric-icon" style="background: linear-gradient(135deg, #cc3333 0%, #991111 100%);">
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2ZM10 4C13.3137 4 16 6.68629 16 10C16 13.3137 13.3137 16 10 16C6.68629 16 4 13.3137 4 10C4 6.68629 6.68629 4 10 4ZM10 7C10.4142 7 10.75 7.33579 10.75 7.75V11.25C10.75 11.6642 10.4142 12 10 12C9.58579 12 9.25 11.6642 9.25 11.25V7.75C9.25 7.33579 9.58579 7 10 7ZM10 13C10.5523 13 11 13.4477 11 14C11 14.5523 10.5523 15 10 15C9.44772 15 9 14.5523 9 14C9 13.4477 9.44772 13 10 13Z"/>
+                  </svg>
+                </div>
+                <div class="metric-content">
+                  <span class="metric-label">Falhados</span>
+                  <strong id="metric-failed" class="metric-value">-</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Operational Alerts -->
+            <section id="operational-alerts" class="alerts-section" hidden></section>
+
+            <!-- Connections -->
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Ligações</h2>
+              </div>
+              <p id="connections-error" class="error-notice" hidden></p>
+              <div id="connections-list" class="connections-grid"></div>
+            </section>
+
+            <!-- Events -->
+            <section class="panel">
+              <div class="panel-header">
+                <div>
+                  <h2>Eventos Recentes</h2>
+                  <p class="panel-subtitle">Histórico de transferências e processamento</p>
+                </div>
+                <form id="event-filters" class="filters-form">
+                  <select id="status-filter" class="filter-input" aria-label="Estado">
+                    <option value="">Todos os Estados</option>
+                    <option value="sent">Enviados</option>
+                    <option value="confirmed">Confirmados</option>
+                    <option value="duplicate">Duplicados</option>
+                    <option value="failed">Falhados</option>
+                    <option value="detected">Detectados</option>
+                  </select>
+                  <input id="connection-filter" type="search" class="filter-input" placeholder="Ligação..." aria-label="Ligação">
+                  <input id="date-from-filter" type="date" class="filter-input" aria-label="Data inicial">
+                  <input id="date-to-filter" type="date" class="filter-input" aria-label="Data final">
+                  <input id="limit-filter" type="number" class="filter-input" min="1" max="500" value="100" aria-label="Limite">
+                  <button id="clear-filters-button" type="button" class="btn btn-tertiary" title="Limpar todos os filtros">Limpar</button>
+                </form>
+              </div>
+              <p id="events-error" class="error-notice" hidden></p>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Ligação</th>
+                      <th>Fornecedor</th>
+                      <th>Encomenda</th>
+                      <th>Protocolo</th>
+                      <th>Estado</th>
+                      <th>Confirmação</th>
+                      <th>Ficheiro</th>
+                      <th>Erro</th>
+                      <th style="width: 60px;">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody id="events-body"></tbody>
+                </table>
+              </div>
+            </section>
+          </section>
+
+          <!-- Reports View -->
+          <section id="view-reports" class="view">
+            <div class="grid-2">
+              <section class="panel">
+                <div class="panel-header">
+                  <h2>Fornecedores</h2>
+                  <p class="panel-subtitle">Agregação por fornecedor de origem</p>
+                </div>
+                <p id="suppliers-error" class="error-notice" hidden></p>
+                <div id="suppliers-list" class="list"></div>
+              </section>
+
+              <section class="panel">
+                <div class="panel-header">
+                  <h2>Relatórios Gerados</h2>
+                  <p class="panel-subtitle">Últimos 12 relatórios mais recentes</p>
+                </div>
+                <p id="reports-error" class="error-notice" hidden></p>
+                <div id="reports-list" class="list"></div>
+              </section>
+            </div>
+          </section>
+
+          <!-- Config View -->
+          <section id="view-config" class="view">
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Nova Ligação</h2>
+                <p class="panel-subtitle">Adicionar uma nova ligação FTP/SFTP</p>
+              </div>
+              <form id="new-connection-form" class="config-form">
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="conn-name">Nome da Ligação *</label>
+                    <input id="conn-name" name="name" type="text" required placeholder="ex: BAYER">
+                  </div>
+                  <div class="form-field">
+                    <label for="conn-protocol">Protocolo *</label>
+                    <select id="conn-protocol" name="protocol" required>
+                      <option value="ftp">FTP</option>
+                      <option value="sftp">SFTP</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="conn-host">Host *</label>
+                    <input id="conn-host" name="host" type="text" required placeholder="ftp.example.com">
+                  </div>
+                  <div class="form-field">
+                    <label for="conn-port">Porta *</label>
+                    <input id="conn-port" name="port" type="number" min="1" value="21" required>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="conn-user">Utilizador *</label>
+                    <input id="conn-user" name="username" type="text" required placeholder="utilizador">
+                  </div>
+                  <div class="form-field">
+                    <label for="conn-password-env">Variável Password</label>
+                    <input id="conn-password-env" name="password_env" type="text" placeholder="NOME_DA_PASSWORD">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="conn-source">Origem (Local) *</label>
+                    <input id="conn-source" name="source_dir" type="text" required placeholder="C:\Origem">
+                  </div>
+                  <div class="form-field">
+                    <label for="conn-remote">Destino (Remoto) *</label>
+                    <input id="conn-remote" name="remote_dir" type="text" required placeholder="/inbound">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="conn-pattern">Padrão de Ficheiros *</label>
+                    <input id="conn-pattern" name="file_pattern" type="text" value="*" required placeholder="*.txt">
+                  </div>
+                  <div class="form-field">
+                    <label for="conn-duplicate">Política de Duplicados</label>
+                    <select id="conn-duplicate" name="duplicate_policy">
+                      <option value="report_only">Reportar Apenas</option>
+                      <option value="move_to_duplicates">Mover para Duplicados</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row">
+                  <label class="checkbox-label">
+                    <input name="confirm_remote_processing" type="checkbox" checked>
+                    <span>Confirmar processamento remoto</span>
+                  </label>
+                </div>
+                <div class="form-row">
+                  <div class="form-field">
+                    <label for="conn-admin-pwd">Password Admin *</label>
+                    <input id="conn-admin-pwd" name="admin_password" type="password" autocomplete="current-password" required placeholder="••••••••">
+                  </div>
+                </div>
+                <div class="form-actions">
+                  <button type="submit" class="btn btn-primary">Criar Ligação</button>
+                  <span id="new-connection-message" class="form-message" aria-live="polite"></span>
+                </div>
+              </form>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header">
+                <h2>Ligações Configuradas</h2>
+                <p class="panel-subtitle">Gerir ligações existentes</p>
+              </div>
+              <p id="config-error" class="error-notice" hidden></p>
+              <div id="config-list" class="config-list"></div>
+            </section>
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <!-- Detail Panel -->
     <aside id="event-detail" class="detail-panel" hidden>
+      <div class="detail-overlay" id="detail-overlay"></div>
       <div class="detail-card">
         <div class="detail-header">
-          <h2>Detalhe do evento</h2>
-          <button id="event-detail-close" type="button">Fechar</button>
+          <h2>Detalhe do Evento</h2>
+          <button id="event-detail-close" type="button" class="btn-close" aria-label="Fechar">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"/>
+            </svg>
+          </button>
         </div>
         <div id="event-detail-body" class="detail-body"></div>
       </div>
     </aside>
+
     <script src="/static/dashboard.js" defer></script>
   </body>
 </html>
