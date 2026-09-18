@@ -195,7 +195,9 @@ def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config
             database_path = Path(db_path)
             if database_path.exists():
                 database_path.unlink()
-            return {"database_deleted": True, "message": "Base de dados apagada com sucesso"}
+            store = SQLiteStore(database_path)
+            store.initialize()
+            return {"database_deleted": True, "message": "Base de dados apagada e reinicializada com sucesso"}
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"Erro ao apagar BD: {str(exc)}") from exc
 
