@@ -107,9 +107,9 @@ def run_once(
                 client.upload(local_path, remote_path)
                 finished = datetime.now(UTC)
                 store.record_transfer_result(event_id, "sent", started, finished, None)
-                move_to_status_dir(local_path, connection.sent_dir)
+                moved_path = move_to_status_dir(local_path, connection.sent_dir)
                 if connection.protocol == "local":
-                    mtime = local_path.stat().st_mtime
+                    mtime = moved_path.stat().st_mtime
                     store.update_generix_mtime(connection.name, str(mtime))
                 summary = summary.add(processed=1, sent=1)
             except Exception as exc:
