@@ -14,6 +14,19 @@ from integration_app.storage.sqlite_store import SQLiteStore
 from integration_app.transfers.base import TransferClient, build_transfer_client
 
 
+def _extract_origin_for_event(local_path: Path, flow_type: str) -> str | None:
+    try:
+        if local_path.suffix.lower() == ".xml":
+            return None
+        edi = parse_order_edi_file(local_path)
+        if flow_type == "received":
+            return edi.remetente_nome
+        else:
+            return edi.fornecedor_nome
+    except Exception:
+        return None
+
+
 @dataclass(frozen=True)
 class RunSummary:
     processed: int = 0
@@ -45,7 +58,16 @@ def run_once(
                 continue
             remote_path = remote_path_for(connection, local_path)
             is_duplicate = _is_duplicate_order(connection, store, local_path)
-            event_id = store.record_detected(connection, local_path, remote_path)
+            origin_name = _extract_origin_for_event(local_path, connection.flow_type)
+            edi_origin_name = origin_name if connection.flow_type == "received" else None
+            edi_fornecedor_nome = origin_name if connection.flow_type == "sent" else None
+            event_id = store.record_detected(
+                connection,
+                local_path,
+                remote_path,
+                edi_origin_name=edi_origin_name,
+                edi_fornecedor_nome=edi_fornecedor_nome,
+            )
             started = datetime.now(UTC)
             if is_duplicate:
                 try:

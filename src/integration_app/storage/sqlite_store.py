@@ -44,7 +44,9 @@ class SQLiteStore:
                     sent_at TEXT,
                     confirmation_status TEXT,
                     confirmation_checked_at TEXT,
-                    error_message TEXT
+                    error_message TEXT,
+                    edi_origin_name TEXT,
+                    edi_fornecedor_nome TEXT
                 );
                 CREATE TABLE IF NOT EXISTS transfer_attempts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -64,15 +66,23 @@ class SQLiteStore:
                 "UPDATE file_events SET confirmation_status = 'skipped' WHERE status = 'duplicate' AND confirmation_status = 'pending'"
             )
 
-    def record_detected(self, connection: ConnectionConfig, local_path: Path, remote_path: str) -> int:
+    def record_detected(
+        self,
+        connection: ConnectionConfig,
+        local_path: Path,
+        remote_path: str,
+        edi_origin_name: str | None = None,
+        edi_fornecedor_nome: str | None = None,
+    ) -> int:
         now = datetime.now(UTC).isoformat()
         with self._connect() as conn:
             cursor = conn.execute(
                 """
                 INSERT INTO file_events (
                     connection_name, flow_type, protocol, host, port, username,
-                    local_path, remote_path, status, detected_at, confirmation_status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    local_path, remote_path, status, detected_at, confirmation_status,
+                    edi_origin_name, edi_fornecedor_nome
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     connection.name,
@@ -86,6 +96,8 @@ class SQLiteStore:
                     "detected",
                     now,
                     "pending" if connection.confirm_remote_processing else "disabled",
+                    edi_origin_name,
+                    edi_fornecedor_nome,
                 ),
             )
             return int(cursor.lastrowid)
