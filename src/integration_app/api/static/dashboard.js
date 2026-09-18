@@ -57,17 +57,26 @@ function showView(viewName) {
 }
 
 async function refreshAll() {
-  await Promise.all([
-    fetchSummary(),
-    fetchEvents(),
-    fetchConnections(),
-    fetchConfigSummary(),
-    fetchClients(),
-    fetchSuppliers(),
-    fetchReports(),
-  ]);
-  const now = new Date();
-  document.getElementById("last-updated").textContent = `Última atualização: ${now.toLocaleString("pt-PT")}`;
+  const btn = document.getElementById("refresh-button");
+  btn.classList.add("refreshing");
+  btn.disabled = true;
+
+  try {
+    await Promise.all([
+      fetchSummary(),
+      fetchEvents(),
+      fetchConnections(),
+      fetchConfigSummary(),
+      fetchClients(),
+      fetchSuppliers(),
+      fetchReports(),
+    ]);
+    const now = new Date();
+    document.getElementById("last-updated").textContent = `Última atualização: ${now.toLocaleString("pt-PT")}`;
+  } finally {
+    btn.classList.remove("refreshing");
+    btn.disabled = false;
+  }
 }
 
 async function fetchSummary() {
