@@ -207,11 +207,20 @@
 
           <!-- Reports View -->
           <section id="view-reports" class="view">
-            <div class="grid-2">
+            <div class="grid-3">
+              <section class="panel">
+                <div class="panel-header">
+                  <h2>Clientes</h2>
+                  <p class="panel-subtitle">Agregação por cliente (received)</p>
+                </div>
+                <p id="clients-error" class="error-notice" hidden></p>
+                <div id="clients-list" class="list"></div>
+              </section>
+
               <section class="panel">
                 <div class="panel-header">
                   <h2>Fornecedores</h2>
-                  <p class="panel-subtitle">Agregação por fornecedor de origem</p>
+                  <p class="panel-subtitle">Agregação por fornecedor (sent)</p>
                 </div>
                 <p id="suppliers-error" class="error-notice" hidden></p>
                 <div id="suppliers-list" class="list"></div>

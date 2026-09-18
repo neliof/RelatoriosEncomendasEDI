@@ -181,6 +181,9 @@ def list_reports(report_dir: Path) -> list[dict[str, object]]:
 def fetch_suppliers(db_path: Path) -> list[dict[str, object]]:
     suppliers: dict[str, dict[str, object]] = {}
     for row in fetch_events(db_path, EventFilters(limit=500)):
+        flow_type = str(row.get("flow_type") or "")
+        if flow_type != "sent":
+            continue
         enriched = _enrich_row(row)
         supplier_name = str(enriched.get("edi_fornecedor_nome") or enriched.get("xml_seller_name") or "UNKNOWN")
         if supplier_name not in suppliers:
@@ -197,6 +200,30 @@ def fetch_suppliers(db_path: Path) -> list[dict[str, object]]:
         if row.get("status") == "duplicate":
             item["duplicate_count"] = int(item["duplicate_count"]) + 1
     return [suppliers[name] for name in sorted(suppliers)]
+
+
+def fetch_clients(db_path: Path) -> list[dict[str, object]]:
+    clients: dict[str, dict[str, object]] = {}
+    for row in fetch_events(db_path, EventFilters(limit=500)):
+        flow_type = str(row.get("flow_type") or "")
+        if flow_type != "received":
+            continue
+        enriched = _enrich_row(row)
+        client_name = str(enriched.get("edi_origin_name") or "UNKNOWN")
+        if client_name not in clients:
+            clients[client_name] = {
+                "client_name": client_name,
+                "total_files": 0,
+                "failed_count": 0,
+                "duplicate_count": 0,
+            }
+        item = clients[client_name]
+        item["total_files"] = int(item["total_files"]) + 1
+        if row.get("status") == "failed":
+            item["failed_count"] = int(item["failed_count"]) + 1
+        if row.get("status") == "duplicate":
+            item["duplicate_count"] = int(item["duplicate_count"]) + 1
+    return [clients[name] for name in sorted(clients)]
 
 
 def _connect(db_path: Path) -> sqlite3.Connection:

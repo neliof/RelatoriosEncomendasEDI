@@ -3,6 +3,7 @@ const state = {
   events: [],
   connections: [],
   config: null,
+  clients: [],
   suppliers: [],
   reports: [],
 };
@@ -60,6 +61,7 @@ async function refreshAll() {
     fetchEvents(),
     fetchConnections(),
     fetchConfigSummary(),
+    fetchClients(),
     fetchSuppliers(),
     fetchReports(),
   ]);
@@ -114,6 +116,17 @@ function clearEventFilters() {
   document.getElementById("date-to-filter").value = "";
   document.getElementById("limit-filter").value = "100";
   fetchEvents();
+}
+
+async function fetchClients() {
+  try {
+    hideError("clients-error");
+    const payload = await getJson("/clients");
+    state.clients = payload.items || [];
+    renderClients();
+  } catch (error) {
+    showError("clients-error", error);
+  }
 }
 
 async function fetchSuppliers() {
@@ -542,6 +555,29 @@ function detailRows(rows) {
     .filter(([, value]) => value !== null && value !== undefined && value !== "")
     .map(([label, value]) => `<div class="detail-row"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></div>`)
     .join("");
+}
+
+function renderClients() {
+  const container = document.getElementById("clients-list");
+  container.innerHTML = "";
+
+  if (state.clients.length === 0) {
+    container.innerHTML = `<div style="padding: 24px; text-align: center; color: var(--text-tertiary);">Sem clientes para apresentar.</div>`;
+    return;
+  }
+
+  for (const client of state.clients) {
+    const row = document.createElement("div");
+    row.className = "list-row";
+    row.innerHTML = `
+      <div>
+        <strong>${escapeHtml(client.client_name || "DESCONHECIDO")}</strong>
+        <small>Total: ${client.total_files ?? 0}</small>
+      </div>
+      <small>Duplicados: ${client.duplicate_count ?? 0} | Falhados: ${client.failed_count ?? 0}</small>
+    `;
+    container.appendChild(row);
+  }
 }
 
 function renderSuppliers() {

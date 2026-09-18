@@ -405,6 +405,12 @@ body {
   gap: 24px;
 }
 
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 24px;
+}
+
 /* Filters */
 .filters-form {
   display: flex;

@@ -15,6 +15,7 @@ from integration_app.api.config_management import (
 )
 from integration_app.api.read_models import (
     EventFilters,
+    fetch_clients,
     fetch_connections,
     fetch_config_summary,
     fetch_event_detail,
@@ -112,6 +113,10 @@ def create_app(db_path: Path, report_dir: Path, config_path: Path = Path("config
     @app.get("/suppliers")
     def suppliers() -> dict[str, object]:
         return {"items": fetch_suppliers(db_path)}
+
+    @app.get("/clients")
+    def clients() -> dict[str, object]:
+        return {"items": fetch_clients(db_path)}
 
     @app.get("/reports")
     def reports() -> dict[str, object]:
