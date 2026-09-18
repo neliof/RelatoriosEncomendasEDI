@@ -47,7 +47,7 @@ def _parse_connection(raw: Any) -> ConnectionConfig:
     if not isinstance(raw, dict):
         raise ValueError("Each connection must be a mapping")
     protocol = _required_str(raw, "protocol").lower()
-    if protocol not in {"ftp", "sftp"}:
+    if protocol not in {"ftp", "sftp", "local"}:
         raise ValueError(f"Unsupported protocol: {protocol}")
     return ConnectionConfig(
         name=_required_str(raw, "name"),
@@ -58,7 +58,7 @@ def _parse_connection(raw: Any) -> ConnectionConfig:
         port=_required_int(raw, "port"),
         username=_required_str(raw, "username"),
         source_dir=Path(_required_str(raw, "source_dir")),
-        remote_dir=_required_str(raw, "remote_dir"),
+        remote_dir=_optional_str(raw, "remote_dir") or "",
         file_pattern=str(raw.get("file_pattern", "*")),
         sent_dir=str(raw.get("sent_dir", "Enviados")),
         error_dir=str(raw.get("error_dir", "Erros")),

@@ -29,4 +29,8 @@ def build_transfer_client(connection: ConnectionConfig) -> TransferClient:
         from integration_app.transfers.sftp_client import SFTPTransferClient
 
         return SFTPTransferClient(connection)
+    if connection.protocol == "local":
+        from integration_app.transfers.local_client import LocalTransferClient
+
+        return LocalTransferClient(connection)
     raise ValueError(f"Unsupported protocol: {connection.protocol}")
