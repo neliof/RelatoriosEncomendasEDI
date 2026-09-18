@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Guia de Utilizador — Relatórios Encomendas EDI</title>
+    <style>
+        :root {
+            --bg-page: #f4f5f2;
+            --bg-panel: #ffffff;
+            --text-primary: #16232f;
+            --text-body: #2c3a44;
+            --text-muted: #647079;
+            --line: #dde2de;
+            --accent: #0f6b5c;
+            --accent-dark: #0b4f44;
+            --accent-tint: #e6f1ee;
+            --warning: #8a5a00;
+            --warning-bg: #fbf1de;
+            --danger: #9c2b22;
+            --danger-bg: #f9e9e7;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-page: #1a1f23;
+                --bg-panel: #252d35;
+                --text-primary: #f0f2f0;
+                --text-body: #d4dde0;
+                --text-muted: #a0adb5;
+                --line: #3a4651;
+            }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+            background: var(--bg-page);
+            color: var(--text-body);
+            line-height: 1.6;
+            padding: 0;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 260px;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--line);
+            padding: 2rem 1.5rem;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            font-size: 0.85rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .sidebar-brand svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--accent);
+        }
+
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .nav-item {
+            background: none;
+            border: none;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            cursor: pointer;
+            color: var(--text-body);
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .nav-item:hover {
+            background: var(--accent-tint);
+            color: var(--accent-dark);
+        }
+
+        .nav-item.active {
+            background: var(--accent-tint);
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .content {
+            flex: 1;
+            padding: 3rem 4rem;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        h2 {
+            font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+            font-size: 1.8rem;
+            color: var(--text-primary);
+            margin: 3rem 0 1.5rem 0;
+            padding-top: 2rem;
+            border-top: 1px solid var(--line);
+        }
+
+        h2:first-child {
+            border-top: none;
+            padding-top: 0;
+            margin-top: 0;
+        }
+
+        h3 {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            margin: 1.5rem 0 0.75rem 0;
+        }
+
+        ol {
+            list-style: none;
+            counter-reset: step-counter;
+            margin: 1.5rem 0;
+            padding: 0;
+        }
+
+        li {
+            counter-increment: step-counter;
+            margin-bottom: 1.25rem;
+            padding-left: 2.5rem;
+            position: relative;
+        }
+
+        li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--line);
+            border-radius: 50%;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        li + li {
+            border-top: 1px solid var(--line);
+            padding-top: 1.25rem;
+        }
+
+        strong {
+            background: var(--bg-panel);
+            border: 1px solid var(--line);
+            color: var(--accent);
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .tip, .box, .warning, .danger {
+            border-left: 3px solid var(--line);
+            padding: 1rem;
+            margin: 1.5rem 0;
+            border-radius: 4px;
+            font-size: 0.95rem;
+        }
+
+        .tip {
+            background: var(--accent-tint);
+            border-left-color: var(--accent);
+            color: var(--accent-dark);
+        }
+
+        .box {
+            background: var(--accent-tint);
+            border-left-color: var(--accent);
+        }
+
+        .warning {
+            background: var(--warning-bg);
+            border-left-color: var(--warning);
+            color: var(--warning);
+        }
+
+        .danger {
+            background: var(--danger-bg);
+            border-left-color: var(--danger);
+            color: var(--danger);
+        }
+
+        figure {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        figure img {
+            max-width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 4px;
+            display: block;
+            margin: 0 auto 0.75rem;
+        }
+
+        figcaption {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        .two-col {
+            display: flex;
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .two-col figure {
+            flex: 1;
+            margin: 0;
+        }
+
+        @media (max-width: 860px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                border-right: none;
+                border-bottom: 1px solid var(--line);
+                padding: 1rem;
+            }
+
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar-nav {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+
+            .nav-item {
+                flex: 1;
+                min-width: 120px;
+            }
+
+            .content {
+                padding: 2rem;
+                max-width: 100%;
+            }
+
+            .two-col {
+                flex-direction: column;
+            }
+        }
+
+        p {
+            margin: 0.75rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <svg viewBox="0 0 20 20" fill="none">
+                    <rect x="2" y="2" width="16" height="16" rx="2" fill="currentColor" opacity="0.1"/>
+                    <path d="M7 8L7 16M10 8V16M13 8V16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <span>EDI</span>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" onclick="document.getElementById('intro').scrollIntoView()">Introdução</button>
+                <button class="nav-item" onclick="document.getElementById('resumo').scrollIntoView()">Resumo</button>
+                <button class="nav-item" onclick="document.getElementById('relatorios').scrollIntoView()">Relatórios</button>
+                <button class="nav-item" onclick="document.getElementById('configuracao').scrollIntoView()">Configuração</button>
+            </nav>
+        </aside>
+
+        <main class="main">
+            <div class="content">
+                <div id="intro">
+                    <h2>Guia de Utilizador</h2>
+                    <p>Bem-vindo ao <strong>Relatórios Encomendas EDI</strong>, uma ferramenta profissional para gerir e monitorizar o processamento de ficheiros de encomendas em formato EDI.</p>
+                    <p>Este guia explica como utilizar cada funcionalidade da aplicação, passo a passo. Não requer conhecimentos técnicos — basta seguir as instruções.</p>
+
+                    <h3>O que faz esta aplicação?</h3>
+                    <p>A aplicação monitora automaticamente ficheiros de encomendas que chegam, processa-os e agrupa-os por cliente ou fornecedor. Mostra um resumo visual do estado de cada envio e permite configurar como e quando deve processar cada ligação.</p>
+                </div>
+
+                <div id="resumo">
+                    <h2>Resumo (Dashboard)</h2>
+                    <p>O ecrã inicial mostra um resumo rápido do estado geral.</p>
+
+                    <h3>O que vejo?</h3>
+                    <ol>
+                        <li>
+                            <strong>Título e marca</strong> — No topo, o nome da aplicação e o botão <strong>Atualizar</strong> (girará enquanto carrega dados).
+                        </li>
+                        <li>
+                            <strong>Cartões de métricas</strong> — Quatro blocos numerados:
+                            <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                                <li><strong>Total de Ficheiros</strong> — quantos ficheiros foram descobertos no total.</li>
+                                <li><strong>Enviados</strong> — quantos foram processados com sucesso.</li>
+                                <li><strong>Confirmados</strong> — quantos chegaram ao destino (se a confirmação estiver ativa).</li>
+                                <li><strong>Erros</strong> — quantos falharam.</li>
+                            </ul>
+                        </li>
+                        <li>
+                            <strong>Clientes</strong> — Uma tabela mostrando cada cliente (origem dos ficheiros) e quantos ficheiros tem. Clique numa linha para ver mais detalhe.
+                        </li>
+                        <li>
+                            <strong>Fornecedores</strong> — Semelhante, mas para ficheiros saídos (se houver).
+                        </li>
+                    </ol>
+
+                    <div class="tip">
+                        <strong>Dica:</strong> Clique no botão <strong>Atualizar</strong> se os números não corresponderem ao que espera. A aplicação refresca automaticamente cada 5 segundos.
+                    </div>
+                </div>
+
+                <div id="relatorios">
+                    <h2>Relatórios</h2>
+                    <p>Nesta aba, vê um resumo detalhado e filtrável de cada ficheiro processado, agrupado por cliente ou fornecedor.</p>
+
+                    <h3>Como filtrar por data?</h3>
+                    <ol>
+                        <li>Clique na aba <strong>Relatórios</strong> no menu esquerdo.</li>
+                        <li>No topo, verá dois campos de data:
+                            <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                                <li><strong>De</strong> — data inicial do intervalo.</li>
+                                <li><strong>Até</strong> — data final do intervalo.</li>
+                            </ul>
+                        </li>
+                        <li>Edite qualquer dos campos e clique fora (ou pressione Enter) — a tabela atualiza-se automaticamente.</li>
+                        <li>Para repor o filtro, limpe os campos ou clique <strong>Limpar Filtros</strong>.</li>
+                    </ol>
+
+                    <h3>O que mostram os números?</h3>
+                    <p>Cada linha da tabela representa um cliente ou fornecedor e mostra:</p>
+                    <ul style="margin-left: 1.5rem;">
+                        <li><strong>Nome</strong> — nome do cliente ou fornecedor.</li>
+                        <li><strong>Total</strong> — quantos ficheiros tem no período escolhido.</li>
+                        <li><strong>Enviados</strong> — quantos foram processados.</li>
+                        <li><strong>Erros</strong> — quantos falharam (vermelho se houver).</li>
+                        <li><strong>Último contacto</strong> — quando foi o envio mais recente.</li>
+                    </ul>
+
+                    <div class="box">
+                        Se clicar numa linha, abre um painel com todos os ficheiros desse cliente, um a um, e os detalhes de cada (data, estado, mensagens de erro se houver).
+                    </div>
+                </div>
+
+                <div id="configuracao">
+                    <h2>Configuração</h2>
+                    <p>Aqui configura como a aplicação processa ficheiros — quais as ligações, credenciais, agendamento e localização das pastas.</p>
+
+                    <h3>Nova Ligação</h3>
+                    <ol>
+                        <li>Clique na aba <strong>Configuração</strong>.</li>
+                        <li>No painel <strong>Nova Ligação</strong>, preencha:
+                            <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                                <li><strong>Nome</strong> — identificador único (ex: "FTP_Cliente_A").</li>
+                                <li><strong>Protocolo</strong> — FTP, SFTP ou Local (pasta).</li>
+                                <li><strong>Tipo</strong> — "Receber" (ficheiros que chegam) ou "Enviar" (ficheiros que saem).</li>
+                                <li><strong>Host</strong> — endereço do servidor (ou deixe em branco para Local).</li>
+                                <li><strong>Porta</strong> — porta FTP/SFTP (21 ou 22 normalmente).</li>
+                                <li><strong>Utilizador</strong> — nome de utilizador.</li>
+                                <li><strong>Pasta Local</strong> — caminho na máquina local onde armazena ficheiros.</li>
+                            </ul>
+                        </li>
+                        <li>Clique <strong>Criar</strong>. Verá a nova ligação na lista abaixo.</li>
+                    </ol>
+
+                    <div class="warning">
+                        <strong>Atenção:</strong> Precisa de permissões administrativas (password) para criar, alterar ou eliminar ligações.
+                    </div>
+
+                    <h3>Editar Credenciais</h3>
+                    <ol>
+                        <li>Na lista <strong>Ligações Configuradas</strong>, localize a ligação.</li>
+                        <li>Clique no ícone <strong>⚙</strong> (engrenagem) ou no botão de edição ao lado do nome.</li>
+                        <li>No painel <strong>Editar Credenciais</strong>, altere:
+                            <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                                <li><strong>Host</strong></li>
+                                <li><strong>Porta</strong></li>
+                                <li><strong>Utilizador</strong></li>
+                                <li><strong>Password</strong> (deixe em branco para não alterar)</li>
+                            </ul>
+                        </li>
+                        <li>Clique <strong>Guardar</strong>.</li>
+                    </ol>
+
+                    <h3>Agendar Processamento</h3>
+                    <p>Defina com que frequência a aplicação processa ficheiros de cada ligação.</p>
+                    <ol>
+                        <li>Na lista <strong>Ligações Configuradas</strong>, clique em <strong>Agendar</strong> ao lado da ligação.</li>
+                        <li>No painel <strong>Agendar Ligação</strong>, escolha:
+                            <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                                <li><strong>Ativado</strong> — marca a caixa para ligar/desligar este agendamento.</li>
+                                <li><strong>Frequência</strong> — Diariamente, De Hora em Hora, ou A cada X minutos/horas.</li>
+                                <li><strong>Hora / Minuto</strong> — se diário, a que hora.</li>
+                            </ul>
+                        </li>
+                        <li>Clique <strong>Guardar</strong>. A aplicação processa automaticamente nos horários escolhidos.</li>
+                    </ol>
+
+                    <div class="tip">
+                        <strong>Dica:</strong> Para testar rapidamente, escolha "A cada 1 minuto" e aguarde. Verá os ficheiros processados no ecrã <strong>Resumo</strong>.
+                    </div>
+
+                    <h3>Manutenção — Limpar Base de Dados</h3>
+                    <p>Se quiser recomeçar do zero (para testes), pode eliminar todos os registos processados.</p>
+                    <ol>
+                        <li>No painel <strong>Manutenção</strong>, clique <strong>Limpar Base de Dados</strong>.</li>
+                        <li>Aparecerá uma caixa a pedir confirmação. Digite exatamente <strong>DELETE_ALL_DATA</strong>.</li>
+                        <li>Clique <strong>Confirmar</strong>. Todos os registos serão apagados e a base de dados reinicializada.</li>
+                    </ol>
+
+                    <div class="danger">
+                        <strong>Cuidado:</strong> Esta ação é irreversível. Certifique-se de que não precisa dos dados históricos.
+                    </div>
+
+                    <h3>Generix Mailbox — Localização</h3>
+                    <p>Se usa Generix Mailbox, indique onde estão as pastas de entrada e saída.</p>
+                    <ol>
+                        <li>No painel <strong>Configurações Gerais</strong>, procure o campo <strong>Localização Generix Mailbox</strong>.</li>
+                        <li>Cole o caminho completo (ex: <code style="background: var(--line); padding: 0.25rem 0.4rem; border-radius: 2px; font-family: monospace;">C:\Users\Utilizador\Documents\Generix</code>).</li>
+                        <li>Clique <strong>Guardar</strong>. A aplicação usa esta localização para descobrir pastas de "Recebidos" e "Enviados".</li>
+                    </ol>
+                </div>
+
+                <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--line);">
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">
+                        <strong>Versão do Guia:</strong> 1.0 — setembro de 2026
+                    </p>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
