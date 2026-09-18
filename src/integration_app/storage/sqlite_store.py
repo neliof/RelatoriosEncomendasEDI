@@ -57,6 +57,11 @@ class SQLiteStore:
                     error_message TEXT,
                     FOREIGN KEY(event_id) REFERENCES file_events(id)
                 );
+                CREATE TABLE IF NOT EXISTS generix_processing_state (
+                    connection_name TEXT PRIMARY KEY,
+                    last_processed_mtime TEXT NOT NULL,
+                    last_updated TEXT NOT NULL
+                );
                 """
             )
             conn.execute(
@@ -170,6 +175,26 @@ class SQLiteStore:
                 """
             ).fetchall()
         return [dict(row) for row in rows]
+
+    def get_generix_last_mtime(self, connection_name: str) -> str | None:
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT last_processed_mtime FROM generix_processing_state WHERE connection_name = ?",
+                (connection_name,),
+            ).fetchone()
+        return row["last_processed_mtime"] if row else None
+
+    def update_generix_mtime(self, connection_name: str, mtime: str) -> None:
+        now = datetime.now(UTC).isoformat()
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO generix_processing_state
+                (connection_name, last_processed_mtime, last_updated)
+                VALUES (?, ?, ?)
+                """,
+                (connection_name, mtime, now),
+            )
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
