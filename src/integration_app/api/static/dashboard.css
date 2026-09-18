@@ -719,6 +719,10 @@ body {
   z-index: 100;
 }
 
+.detail-panel[hidden] {
+  display: none !important;
+}
+
 .detail-overlay {
   position: absolute;
   inset: 0;
