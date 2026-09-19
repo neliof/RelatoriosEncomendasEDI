@@ -42,6 +42,11 @@ nssm set RelatoriosEncomendasEDI AppStderr "%cd%\logs\service_error.log"
 REM Auto-restart se falhar
 nssm set RelatoriosEncomendasEDI AppExit Default Restart
 
+REM Definir password admin (obrigatorio para criar/editar ligacoes)
+set ADMIN_PASSWORD=Aiccol206c
+nssm set RelatoriosEncomendasEDI AppEnvironmentExtra INTEGRATION_ADMIN_PASSWORD=!ADMIN_PASSWORD!
+echo [CONFIG] Password admin definida
+
 echo [INICIANDO] Servico...
 nssm start RelatoriosEncomendasEDI
 

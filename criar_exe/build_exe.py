@@ -119,16 +119,30 @@ def main() -> int:
     (dist_dir / "logs").mkdir(exist_ok=True)
     (dist_dir / "reports").mkdir(exist_ok=True)
 
-    # Copiar config.example.yaml
+    # Copiar config.example.yaml e criar config.yaml padrão
     example_config = CONFIG.PROJECT_ROOT / "config.example.yaml"
     if example_config.exists():
         shutil.copy2(example_config, dist_dir / "config.example.yaml")
+        # Criar config.yaml padrão se não existir
+        default_config = dist_dir / "config.yaml"
+        if not default_config.exists():
+            shutil.copy2(example_config, default_config)
 
-    # Copiar scripts batch
-    for script in ["install_service.bat", "uninstall_service.bat", "README_PRODUCAO.txt"]:
+    # Copiar scripts batch e troubleshooting
+    for script in ["install_service.bat", "uninstall_service.bat", "restart_service.bat", "troubleshoot.bat", "README_PRODUCAO.txt"]:
         src = CONFIG.BUILDER_DIR / script
         if src.exists():
             shutil.copy2(src, dist_dir / script)
+
+    # Baixar NSSM se não existir
+    nssm_path = CONFIG.BUILDER_DIR / "nssm.exe"
+    nssm_dist = dist_dir / "nssm.exe"
+    if nssm_path.exists():
+        print("[BUILD] Copiando NSSM...")
+        shutil.copy2(nssm_path, nssm_dist)
+    elif not nssm_dist.exists():
+        print("[AVISO] NSSM não encontrado. Baixe de: https://nssm.cc/download")
+        print("[AVISO] Copie nssm.exe para criar_exe/")
 
     print(f"[BUILD] ✓ Concluído: {dist_dir}")
     return 0
